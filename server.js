@@ -7,6 +7,7 @@ const API_KEY = process.env.ANTHROPIC_API_KEY;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+   app.use(express.static(path.join(__dirname)));
 
 // Proxy-Endpunkt: Frontend ruft /api/chat, Server leitet an Anthropic weiter
 app.post("/api/chat", async (req, res) => {
