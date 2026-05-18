@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Philipp · KI-Agent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #07090f; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #1e2433; border-radius: 2px; }
+input, textarea, button { font-family: 'IBM Plex Sans', sans-serif; }
+input::placeholder, textarea::placeholder { color: #5a6278; }
+input:focus, textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(201,168,76,0.3); }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+@keyframes spin { to { transform:rotate(360deg); } }
+.fade-up { animation: fadeUp 0.4s ease both; }
+.tab-btn { transition: all 0.2s; }
+.tab-btn:hover { background: rgba(201,168,76,0.08) !important; color: #e8c96a !important; }
+.card-hover { transition: border-color 0.2s, transform 0.15s; cursor: pointer; }
+.card-hover:hover { border-color: rgba(201,168,76,0.4) !important; transform: translateY(-1px); }
+.btn-gold { transition: all 0.2s; }
+.btn-gold:hover:not(:disabled) { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(201,168,76,0.3); }
+.btn-ghost:hover { background: rgba(255,255,255,0.05) !important; }
+.task-row:hover { background: rgba(255,255,255,0.03) !important; }
+.opt-btn { transition: all 0.15s; }
+.opt-btn:hover { border-color: #c9a84c !important; background: rgba(201,168,76,0.08) !important; }
+.starter-btn { transition: all 0.2s; }
+.starter-btn:hover { border-color: #c9a84c !important; color: #e8eaf0 !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+const MODEL = "claude-sonnet-4-20250514";
+const TODAY = new Date().toLocaleDateString("de-DE", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+const C = { bg:"#07090f", surface:"#0e1117", card:"#131720", border:"#1e2433", gold:"#c9a84c", goldLight:"#e8c96a", text:"#e8eaf0", muted:"#5a6278", success:"#34c97a", danger:"#e05252" };
+
+// ── API: ruft unseren eigenen Server auf, kein API-Key im Browser ──────────
+async function claude({ messages, system, onText, maxTokens = 1500 }) {
+  let res;
+  try {
+    res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+    });
+  } catch(e) { throw new Error("Netzwerkfehler: " + e.message); }
+  if (!res.ok) {
+    let msg = "Fehler " + res.status;
+    try { const d = await res.json(); msg = d.error?.message || d.error || msg; } catch {}
+    throw new Error(msg);
+  }
+  let data;
+  try { data = await res.json(); } catch(e) { throw new Error("Ungültige Antwort vom Server"); }
+  if (!data.content || !Array.isArray(data.content)) throw new Error("Unerwartetes Antwortformat");
+  const text = data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  if (onText) onText(text);
+  return text;
+}
+
+// ── SHARED ───────────────────────────────────────────────────────────────────
+function Spinner({ size=16 }) {
+  return <div style={{ width:size, height:size, border:`2px solid #1e2433`, borderTopColor:"#c9a84c", borderRadius:"50%", animation:"spin 0.8s linear infinite", flexShrink:0 }}/>;
+}
+function Btn({ children, onClick, disabled, variant="gold", style:s={}, small }) {
+  const base = { border:"none", cursor:disabled?"not-allowed":"pointer", borderRadius:8, display:"inline-flex", alignItems:"center", gap:7, fontWeight:600, fontSize:small?12:13, padding:small?"6px 12px":"10px 18px", opacity:disabled?0.5:1, ...s };
+  if (variant==="gold") return <button className="btn-gold" onClick={onClick} disabled={disabled} style={{...base, background:"linear-gradient(135deg,#c9a84c,#a07830)", color:"#07090f"}}>{children}</button>;
+  if (variant==="ghost") return <button className="btn-ghost" onClick={onClick} disabled={disabled} style={{...base, background:"transparent", color:"#5a6278", border:"1px solid #1e2433"}}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} style={{...base, background:"#131720", color:"#e8eaf0", border:"1px solid #1e2433"}}>{children}</button>;
+}
+function Tag({ children, color }) {
+  const colors = { gold:{bg:"rgba(201,168,76,.15)",c:"#c9a84c"}, green:{bg:"rgba(52,201,122,.15)",c:"#34c97a"}, red:{bg:"rgba(224,82,82,.15)",c:"#e05252"}, blue:{bg:"rgba(60,120,220,.15)",c:"#4f9bff"} };
+  const col = colors[color]||colors.gold;
+  return <span style={{ background:col.bg, color:col.c, fontSize:10, fontWeight:600, padding:"2px 8px", borderRadius:4, letterSpacing:0.5, textTransform:"uppercase", fontFamily:"'IBM Plex Mono',monospace" }}>{children}</span>;
+}
+function StreamText({ text, loading }) {
+  return <div style={{ fontSize:14, lineHeight:1.8, color:"#e8eaf0", whiteSpace:"pre-wrap", wordBreak:"break-word" }}>{text}{loading && <span style={{ display:"inline-block", width:8, height:14, background:"#c9a84c", marginLeft:2, animation:"pulse 0.8s infinite", verticalAlign:"middle", borderRadius:1 }}/>}</div>;
+}
+function Section({ title, tag, children, style:s={} }) {
+  return (
+    <div className="fade-up" style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:12, overflow:"hidden", ...s }}>
+      {title && <div style={{ padding:"14px 18px", borderBottom:"1px solid #1e2433", display:"flex", alignItems:"center", gap:10 }}><span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:"#5a6278", letterSpacing:1, textTransform:"uppercase" }}>{title}</span>{tag}</div>}
+      <div style={{ padding:18 }}>{children}</div>
+    </div>
+  );
+}
+
+// ── TAB 1: BRIEFING ──────────────────────────────────────────────────────────
+function BriefingTab() {
+  const [sections, setSections] = useState({});
+  const [active, setActive] = useState(null);
+  const topics = [
+    { key:"markt", icon:"📈", label:"Finanz & Märkte", prompt:"Erkläre die wichtigsten aktuellen Themen an den Finanzmärkten: Zinsentwicklung EZB/Fed, Aktienmarkt-Trends, EUR/USD, Inflation. Strukturierte Stichpunkte mit Einschätzung (positiv/negativ/neutral). Auf Deutsch, prägnant." },
+    { key:"immo", icon:"🏢", label:"Immobilien & KfW", prompt:"Fasse die wichtigsten Entwicklungen im deutschen Immobilienmarkt zusammen: Bauzinsen, KfW-Programme 297/298 QNG, Mietmarkt, §7b Sonder-AfA, degressive AfA. 5 Kernpunkte für Kapitalanleger. Auf Deutsch." },
+    { key:"wirtschaft", icon:"🌍", label:"Wirtschaft & Politik", prompt:"Überblick über wirtschaftspolitische Kernthemen Deutschland/EU: Konjunktur, Regulierung, Energiepreise, geopolitische Risiken für Investoren. 5 prägnante Punkte. Auf Deutsch." },
+    { key:"rotary", icon:"🎯", label:"Gesellschaft & Netzwerk", prompt:"Gesellschaftliche und unternehmerische Trendthemen für einen engagierten Rotarier und Kapitalanleger: ESG, Philanthropy, Leadership-Trends, Netzwerkthemen. 4 Punkte. Auf Deutsch." },
+  ];
+  const loadTopic = async (t) => {
+    if (sections[t.key] && !sections[t.key].loading) { setActive(t.key); return; }
+    setActive(t.key);
+    setSections(s => ({ ...s, [t.key]:{ text:"", loading:true } }));
+    try {
+      await claude({ messages:[{role:"user",content:t.prompt}], system:"Du bist ein präziser Finanz- und Kapitalmarkt-Analyst mit tiefem Wissen über deutsche Immobilienmärkte, Steuerrecht und Makroökonomie. Antworte strukturiert, prägnant und praxisnah auf Deutsch.", onText:text=>setSections(s=>({...s,[t.key]:{text,loading:false}})) });
+    } catch(e) { setSections(s=>({...s,[t.key]:{text:`⚠️ ${e.message}`,loading:false}})); }
+  };
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        {topics.map((t,i) => (
+          <div key={t.key} className="card-hover" onClick={()=>loadTopic(t)} style={{ background:active===t.key?"rgba(201,168,76,0.08)":"#131720", border:`1px solid ${active===t.key?"#c9a84c":"#1e2433"}`, borderRadius:10, padding:"14px 16px", animation:`fadeUp 0.3s ${i*0.07}s both` }}>
+            <div style={{ fontSize:22, marginBottom:6 }}>{t.icon}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:active===t.key?"#c9a84c":"#e8eaf0" }}>{t.label}</div>
+            <div style={{ fontSize:11, color:"#5a6278", marginTop:2 }}>{sections[t.key]?(sections[t.key].loading?"Lädt…":"✓ Geladen"):"Anklicken zum Laden"}</div>
+          </div>
+        ))}
+      </div>
+      {active && sections[active] && (
+        <Section title={topics.find(t=>t.key===active)?.label} tag={sections[active].loading?<Spinner size={12}/>:<Tag color="green">Bereit</Tag>}>
+          <StreamText text={sections[active].text} loading={sections[active].loading}/>
+        </Section>
+      )}
+      {!active && <div style={{ textAlign:"center", padding:"40px 20px", color:"#5a6278", fontSize:13 }}>Wähle ein Thema für dein Briefing</div>}
+    </div>
+  );
+}
+
+// ── TAB 2: CHALLENGE ─────────────────────────────────────────────────────────
+function ChallengeTab() {
+  const [phase, setPhase] = useState("start");
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [results, setResults] = useState(null);
+  const [topic, setTopic] = useState("gemischt");
+  const [level, setLevel] = useState("mittel");
+  const topics = ["Immobilien & KfW","Finanzmärkte & ETF","Steuerstrategie","Makroökonomie","gemischt"];
+  const levels = ["leicht","mittel","anspruchsvoll"];
+  const generateQuiz = async () => {
+    setPhase("loading"); setAnswers({}); setResults(null);
+    const prompt = `Erstelle 4 Multiple-Choice-Fragen zum Thema "${topic}" auf Niveau "${level}" für einen deutschen Kapitalanleger.\n\nGib NUR dieses JSON zurück, kein Markdown, keine Backticks:\n{"questions":[{"id":1,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."},{"id":2,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"B","explanation":"..."},{"id":3,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"C","explanation":"..."},{"id":4,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]}`;
+    try {
+      const raw = await claude({ messages:[{role:"user",content:prompt}], system:"Du bist Finanz-Experte. Antworte AUSSCHLIESSLICH mit rohem JSON ohne Markdown.", maxTokens:1800 });
+      const clean = raw.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"").trim();
+      const s=clean.indexOf("{"), e=clean.lastIndexOf("}");
+      if(s===-1||e===-1) throw new Error("Kein JSON gefunden");
+      const parsed = JSON.parse(clean.slice(s,e+1));
+      if(!parsed.questions?.length) throw new Error("Keine Fragen erhalten");
+      setQuestions(parsed.questions); setPhase("quiz");
+    } catch(e) { setPhase("start"); alert("Fehler: "+e.message); }
+  };
+  const submit = () => {
+    let correct=0;
+    const res = questions.map(q=>{ const ua=answers[q.id]; const ok=ua&&ua.startsWith(q.correct); if(ok)correct++; return{...q,userAnswer:ua,isCorrect:ok}; });
+    setResults({items:res,score:correct,total:questions.length}); setPhase("result");
+  };
+  const reset = () => { setPhase("start"); setQuestions([]); setAnswers({}); setResults(null); };
+  if(phase==="start") return (
+    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+      <Section title="Thema wählen"><div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>{topics.map(t=><button key={t} className="opt-btn" onClick={()=>setTopic(t)} style={{ padding:"7px 14px", borderRadius:8, fontSize:13, cursor:"pointer", fontWeight:500, border:`1px solid ${topic===t?"#c9a84c":"#1e2433"}`, background:topic===t?"rgba(201,168,76,0.12)":"#0e1117", color:topic===t?"#c9a84c":"#e8eaf0" }}>{t}</button>)}</div></Section>
+      <Section title="Schwierigkeit"><div style={{ display:"flex", gap:8 }}>{levels.map((l,i)=><button key={l} className="opt-btn" onClick={()=>setLevel(l)} style={{ flex:1, padding:"10px", borderRadius:8, fontSize:13, cursor:"pointer", fontWeight:500, border:`1px solid ${level===l?"#c9a84c":"#1e2433"}`, background:level===l?"rgba(201,168,76,0.12)":"#0e1117", color:level===l?"#c9a84c":"#5a6278" }}>{"⬡".repeat(i+1)} {l}</button>)}</div></Section>
+      <Btn onClick={generateQuiz} style={{ alignSelf:"center", padding:"12px 32px" }}>Challenge starten →</Btn>
+    </div>
+  );
+  if(phase==="loading") return <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"60px 20px" }}><Spinner size={32}/><div style={{ color:"#5a6278", fontSize:14 }}>Generiere deine Challenge…</div></div>;
+  if(phase==="quiz") return (
+    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}><span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:"#5a6278" }}>{topic.toUpperCase()} · {level.toUpperCase()}</span><Tag color="blue">{Object.keys(answers).length}/{questions.length} beantwortet</Tag></div>
+      {questions.map((q,i)=>(
+        <div key={q.id} style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:12, padding:18, animation:`fadeUp 0.3s ${i*0.08}s both` }}>
+          <div style={{ fontSize:12, color:"#5a6278", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace" }}>Frage {i+1}</div>
+          <div style={{ fontSize:14, fontWeight:600, color:"#e8eaf0", marginBottom:14, lineHeight:1.6 }}>{q.question}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+            {q.options.map(opt=><button key={opt} className="opt-btn" onClick={()=>setAnswers(a=>({...a,[q.id]:opt}))} style={{ padding:"9px 14px", borderRadius:8, textAlign:"left", cursor:"pointer", border:`1px solid ${answers[q.id]===opt?"#c9a84c":"#1e2433"}`, background:answers[q.id]===opt?"rgba(201,168,76,0.12)":"#0e1117", color:answers[q.id]===opt?"#c9a84c":"#e8eaf0", fontSize:13 }}>{opt}</button>)}
+          </div>
+        </div>
+      ))}
+      <Btn onClick={submit} disabled={Object.keys(answers).length<questions.length} style={{ alignSelf:"center", padding:"12px 32px" }}>Auswerten →</Btn>
+    </div>
+  );
+  if(phase==="result"&&results) {
+    const pct=Math.round((results.score/results.total)*100);
+    const col=pct>=75?"#34c97a":pct>=50?"#c9a84c":"#e05252";
+    return (
+      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+        <div className="fade-up" style={{ background:"#131720", border:`1px solid ${col}40`, borderRadius:12, padding:24, textAlign:"center" }}>
+          <div style={{ fontSize:48, fontFamily:"'Playfair Display',serif", color:col, fontWeight:700 }}>{pct}%</div>
+          <div style={{ color:"#e8eaf0", fontSize:15, marginTop:4 }}>{results.score} von {results.total} richtig</div>
+          <div style={{ color:"#5a6278", fontSize:13, marginTop:6 }}>{pct>=75?"Ausgezeichnet! 🏆":pct>=50?"Gut gemacht! 💪":"Weiter üben! 📚"}</div>
+        </div>
+        {results.items.map((q,i)=>(
+          <div key={q.id} style={{ background:"#131720", border:`1px solid ${q.isCorrect?"#34c97a40":"#e0525240"}`, borderRadius:12, padding:16, animation:`fadeUp 0.3s ${i*0.08}s both` }}>
+            <div style={{ display:"flex", gap:10 }}><span style={{ fontSize:16 }}>{q.isCorrect?"✅":"❌"}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:"#e8eaf0", marginBottom:6 }}>{q.question}</div>
+                {!q.isCorrect&&<div style={{ fontSize:12, color:"#e05252", marginBottom:4 }}>Deine Antwort: {q.userAnswer||"–"}</div>}
+                <div style={{ fontSize:12, color:"#34c97a", marginBottom:8 }}>Korrekt: {q.options.find(o=>o.startsWith(q.correct))}</div>
+                <div style={{ fontSize:12, color:"#5a6278", lineHeight:1.6, background:"#0e1117", padding:"8px 12px", borderRadius:6 }}>💡 {q.explanation}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+        <Btn variant="ghost" onClick={reset} style={{ alignSelf:"center" }}>Neue Challenge</Btn>
+      </div>
+    );
+  }
+  return null;
+}
+
+// ── TAB 3: AUFGABEN ──────────────────────────────────────────────────────────
+function TasksTab() {
+  const [tasks, setTasks] = useState([
+    {id:1,text:"KfW-Antrag für Wohneinheit prüfen",prio:"hoch",done:false},
+    {id:2,text:"Quartalsbericht vorbereiten",prio:"mittel",done:false},
+    {id:3,text:"Rotary Meeting Vortrag planen",prio:"mittel",done:false},
+  ]);
+  const [input, setInput] = useState("");
+  const [aiResult, setAiResult] = useState("");
+  const [structureLoading, setStructureLoading] = useState(false);
+  const addTask = () => { if(!input.trim())return; setTasks(t=>[...t,{id:Date.now(),text:input.trim(),prio:"mittel",done:false}]); setInput(""); };
+  const toggle = id => setTasks(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const remove = id => setTasks(t=>t.filter(x=>x.id!==id));
+  const cyclePrio = id => { const p=["hoch","mittel","niedrig"]; setTasks(t=>t.map(x=>x.id===id?{...x,prio:p[(p.indexOf(x.prio)+1)%3]}:x)); };
+  const structureWithAI = async () => {
+    setStructureLoading(true); setAiResult("");
+    const list = tasks.filter(t=>!t.done).map(t=>`- ${t.text} [${t.prio}]`).join("\n");
+    try { await claude({ messages:[{role:"user",content:`Erstelle einen strukturierten Tagesplan mit Zeitblöcken:\n\n${list}`}], system:"Du bist ein Produktivitätsassistent für einen Immobilieninvestor und Rotary-Mitglied. Klare, umsetzbare Tagespläne auf Deutsch.", onText:t=>setAiResult(t) }); }
+    catch(e) { setAiResult("⚠️ "+e.message); }
+    setStructureLoading(false);
+  };
+  const prioColors = {hoch:"#e05252",mittel:"#c9a84c",niedrig:"#34c97a"};
+  const open=tasks.filter(t=>!t.done), done=tasks.filter(t=>t.done);
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", gap:8 }}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Neue Aufgabe hinzufügen…" style={{ flex:1, background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"10px 14px", color:"#e8eaf0", fontSize:14 }}/>
+        <Btn onClick={addTask}>+ Hinzufügen</Btn>
+      </div>
+      {open.length>0&&(
+        <Section title="Offen" tag={<Tag>{open.length}</Tag>} style={{ padding:0 }}>
+          {open.map((t,i)=>(
+            <div key={t.id} className="task-row" style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 18px", borderBottom:i<open.length-1?"1px solid #1e2433":"none" }}>
+              <div onClick={()=>toggle(t.id)} style={{ width:18, height:18, borderRadius:5, border:"2px solid #1e2433", cursor:"pointer", flexShrink:0, transition:"border-color 0.2s" }} onMouseEnter={e=>e.currentTarget.style.borderColor="#c9a84c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1e2433"}/>
+              <span style={{ flex:1, fontSize:13, color:"#e8eaf0" }}>{t.text}</span>
+              <span onClick={()=>cyclePrio(t.id)} style={{ fontSize:10, color:prioColors[t.prio], fontFamily:"'IBM Plex Mono',monospace", cursor:"pointer", padding:"2px 6px", border:`1px solid ${prioColors[t.prio]}40`, borderRadius:4 }}>{t.prio}</span>
+              <button onClick={()=>remove(t.id)} style={{ background:"none", border:"none", color:"#5a6278", cursor:"pointer", fontSize:16, lineHeight:1 }}>×</button>
+            </div>
+          ))}
+        </Section>
+      )}
+      <Btn onClick={structureWithAI} disabled={structureLoading||open.length===0} style={{ justifyContent:"center" }}>
+        {structureLoading?<><Spinner size={13}/> Analysiere…</>:"🤖 KI-Tagesplan erstellen"}
+      </Btn>
+      {aiResult&&<Section title="Dein KI-Tagesplan" tag={<Tag color="gold">Heute</Tag>}><StreamText text={aiResult} loading={structureLoading}/></Section>}
+      {done.length>0&&<Section title="Erledigt" tag={<Tag color="green">{done.length}</Tag>}>{done.map(t=><div key={t.id} onClick={()=>toggle(t.id)} style={{ fontSize:13, color:"#5a6278", textDecoration:"line-through", cursor:"pointer", padding:"4px 0" }}>{t.text}</div>)}</Section>}
+    </div>
+  );
+}
+
+// ── TAB 4: SCHREIBEN ─────────────────────────────────────────────────────────
+function WritingTab() {
+  const [template, setTemplate] = useState(null);
+  const [briefing, setBriefing] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const templates = [
+    {id:"email",icon:"✉️",label:"E-Mail",hint:"An wen, Betreff, Kernaussage",system:"Schreibe professionelle, klare Business-E-Mails auf Deutsch."},
+    {id:"expose",icon:"🏠",label:"Exposé",hint:"Lage, Größe, Besonderheiten, Zielgruppe",system:"Du bist Experte für Immobilienmarketing. Schreibe überzeugende Exposé-Texte auf Deutsch."},
+    {id:"report",icon:"📊",label:"Investmentbericht",hint:"Objekt/Anlage, Eckdaten, Bewertungsziel",system:"Du bist Finanzanalyst. Schreibe strukturierte Investment-Reports auf Deutsch."},
+    {id:"speech",icon:"🎤",label:"Rede / Vortrag",hint:"Thema, Anlass, Zielgruppe, Länge",system:"Du bist Redenschreiber für Wirtschaft und Networking. Schreibe inspirierende Reden auf Deutsch."},
+    {id:"angebot",icon:"📋",label:"Angebot",hint:"Leistung, Preisrahmen, Empfänger",system:"Schreibe überzeugende Angebote und Proposals auf Deutsch."},
+    {id:"memo",icon:"📝",label:"Memo",hint:"Kernaussage, Empfänger, Dringlichkeit",system:"Schreibe klare, präzise Business-Memos auf Deutsch."},
+  ];
+  const generate = async () => {
+    if(!briefing.trim()||!template)return;
+    setLoading(true); setResult("");
+    const t=templates.find(x=>x.id===template);
+    try { await claude({messages:[{role:"user",content:`Erstelle (${t.label}):\n\n${briefing}`}],system:t.system,onText:t=>setResult(t)}); }
+    catch(e) { setResult("⚠️ "+e.message); }
+    setLoading(false);
+  };
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <Section title="Format wählen">
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
+          {templates.map((t,i)=>(
+            <button key={t.id} className="card-hover opt-btn" onClick={()=>setTemplate(t.id)} style={{ background:template===t.id?"rgba(201,168,76,0.1)":"#0e1117", border:`1px solid ${template===t.id?"#c9a84c":"#1e2433"}`, borderRadius:8, padding:"12px 10px", textAlign:"center", animation:`fadeUp 0.25s ${i*0.05}s both` }}>
+              <div style={{ fontSize:20, marginBottom:4 }}>{t.icon}</div>
+              <div style={{ fontSize:11, color:template===t.id?"#c9a84c":"#5a6278", fontWeight:600, lineHeight:1.3 }}>{t.label}</div>
+            </button>
+          ))}
+        </div>
+      </Section>
+      {template&&<>
+        <textarea value={briefing} onChange={e=>setBriefing(e.target.value)} rows={3} placeholder={`Briefing: ${templates.find(t=>t.id===template)?.hint}…`} style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"12px 14px", color:"#e8eaf0", fontSize:14, resize:"vertical", lineHeight:1.6 }}/>
+        <Btn onClick={generate} disabled={loading||!briefing.trim()} style={{ alignSelf:"flex-start" }}>{loading?<><Spinner size={13}/> Schreibe…</>:"✍️ Text generieren"}</Btn>
+      </>}
+      {result&&<Section title="Ergebnis" tag={<button onClick={()=>navigator.clipboard.writeText(result)} style={{ background:"none", border:"1px solid #1e2433", borderRadius:5, color:"#5a6278", fontSize:11, padding:"2px 8px", cursor:"pointer" }}>📋 Kopieren</button>}><StreamText text={result} loading={loading}/></Section>}
+    </div>
+  );
+}
+
+// ── TAB 5: SPARRING ──────────────────────────────────────────────────────────
+function SparringTab() {
+  const [messages, setMessages] = useState([{role:"assistant",content:"Lass uns deine Idee analysieren. Pitch mir dein Konzept – ich hinterfrage, schärfe und helfe dir, blinde Flecken zu finden. Was liegt an?"}]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
+  const send = async () => {
+    if(!input.trim()||loading)return;
+    const userMsg={role:"user",content:input.trim()};
+    const history=[...messages,userMsg];
+    setMessages([...history,{role:"assistant",content:"",loading:true}]);
+    setInput(""); setLoading(true);
+    try {
+      let response="";
+      await claude({ messages:history.map(m=>({role:m.role,content:m.content})), system:`Du bist ein kritisch-konstruktiver Sparringspartner für Philipp – erfahrener Kapitalanleger, NRW, Rotary-Mitglied, Fokus Immobilien & Finanzen. Ideen hinterfragen, Schwachstellen aufdecken, Chancen identifizieren. Stil: direkt, prägnant, auf Augenhöhe. Sprache: Deutsch. 3–6 Sätze pro Antwort.`, onText:t=>{response=t;} });
+      setMessages([...history,{role:"assistant",content:response}]);
+    } catch(e) { setMessages([...history,{role:"assistant",content:`⚠️ ${e.message}`}]); }
+    setLoading(false);
+  };
+  const starters=["Ich überlege, in eine KfW40 QNG Neubauwohnung zu investieren…","Sollte ich mein Portfolio jetzt in REITs diversifizieren?","Ich plane einen Vortrag bei Rotary über Kapitalanlage…","Mein Steuerberater empfiehlt degressive AfA – was denkst du?"];
+  return (
+    <div style={{ display:"flex", flexDirection:"column", minHeight:400 }}>
+      {messages.length===1&&(
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, color:"#5a6278", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace", textTransform:"uppercase", letterSpacing:1 }}>Schnellstart</div>
+          {starters.map(s=><button key={s} className="starter-btn" onClick={()=>setInput(s)} style={{ display:"block", width:"100%", background:"#131720", border:"1px solid #1e2433", borderRadius:7, padding:"9px 13px", color:"#5a6278", fontSize:12, cursor:"pointer", textAlign:"left", marginBottom:6 }}>{s}</button>)}
+        </div>
+      )}
+      <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:12, paddingBottom:4, maxHeight:420 }}>
+        {messages.map((m,i)=>(
+          <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start", animation:"fadeUp 0.3s ease" }}>
+            {m.role==="assistant"&&<div style={{ width:28, height:28, borderRadius:"50%", background:"linear-gradient(135deg,#c9a84c,#7a5020)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, marginRight:8, flexShrink:0, marginTop:2 }}>⚔</div>}
+            <div style={{ maxWidth:"80%", padding:"11px 15px", borderRadius:m.role==="user"?"16px 16px 4px 16px":"4px 16px 16px 16px", background:m.role==="user"?"linear-gradient(135deg,#c9a84ccc,#7a5020cc)":"#131720", border:m.role==="user"?"none":"1px solid #1e2433", color:m.role==="user"?"#07090f":"#e8eaf0", fontSize:13, lineHeight:1.7, whiteSpace:"pre-wrap" }}>
+              {m.content||""}{m.loading&&<Spinner size={12}/>}
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef}/>
+      </div>
+      <div style={{ display:"flex", gap:8, paddingTop:12, borderTop:"1px solid #1e2433", marginTop:8 }}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Deine Idee, Frage oder These…" style={{ flex:1, background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"10px 14px", color:"#e8eaf0", fontSize:13 }}/>
+        <Btn onClick={send} disabled={loading} style={{ flexShrink:0 }}>{loading?<Spinner size={13}/>:"→"}</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN ─────────────────────────────────────────────────────────────────────
+const TABS=[{id:"briefing",icon:"📰",label:"Briefing"},{id:"challenge",icon:"🎯",label:"Challenge"},{id:"tasks",icon:"✅",label:"Aufgaben"},{id:"writing",icon:"✍️",label:"Schreiben"},{id:"sparring",icon:"⚔",label:"Sparring"}];
+
+function App() {
+  const [tab, setTab] = useState("briefing");
+  return (
+    <div style={{ minHeight:"100vh", background:"#07090f", fontFamily:"'IBM Plex Sans',sans-serif", color:"#e8eaf0" }}>
+      <div style={{ background:"#0e1117", borderBottom:"1px solid #1e2433", padding:"0 24px", position:"sticky", top:0, zIndex:100 }}>
+        <div style={{ maxWidth:840, margin:"0 auto", display:"flex", alignItems:"center", gap:16, height:54 }}>
+          <span style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#c9a84c", letterSpacing:"-0.5px" }}>Philipp</span>
+          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#5a6278" }}>· AGENT</span>
+          <div style={{ height:16, width:1, background:"#1e2433" }}/>
+          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#5a6278" }}>{TODAY}</span>
+          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:5, height:5, borderRadius:"50%", background:"#34c97a", animation:"pulse 2s infinite" }}/>
+            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#34c97a" }}>ONLINE</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ background:"#0e1117", borderBottom:"1px solid #1e2433" }}>
+        <div style={{ maxWidth:840, margin:"0 auto", display:"flex", padding:"0 24px" }}>
+          {TABS.map(t=>(
+            <button key={t.id} className="tab-btn" onClick={()=>setTab(t.id)} style={{ padding:"12px 16px", background:"none", border:"none", cursor:"pointer", borderBottom:tab===t.id?"2px solid #c9a84c":"2px solid transparent", color:tab===t.id?"#c9a84c":"#5a6278", fontSize:13, fontWeight:tab===t.id?600:400, display:"flex", alignItems:"center", gap:6 }}>
+              <span>{t.icon}</span><span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ maxWidth:840, margin:"0 auto", padding:"20px 24px 60px" }}>
+        {tab==="briefing"&&<BriefingTab/>}
+        {tab==="challenge"&&<ChallengeTab/>}
+        {tab==="tasks"&&<TasksTab/>}
+        {tab==="writing"&&<WritingTab/>}
+        {tab==="sparring"&&<SparringTab/>}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
