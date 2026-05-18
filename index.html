@@ -1,396 +1,424 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Philipp · KI-Agent</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Zoeger Immobilien · KI-Agent</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: #07090f; }
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-thumb { background: #1e2433; border-radius: 2px; }
-input, textarea, button { font-family: 'IBM Plex Sans', sans-serif; }
-input::placeholder, textarea::placeholder { color: #5a6278; }
-input:focus, textarea:focus { outline: none; box-shadow: 0 0 0 2px rgba(201,168,76,0.3); }
-@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-@keyframes pulse { 0%,100% { opacity:.4; } 50% { opacity:1; } }
-@keyframes spin { to { transform:rotate(360deg); } }
-.fade-up { animation: fadeUp 0.4s ease both; }
-.tab-btn { transition: all 0.2s; }
-.tab-btn:hover { background: rgba(201,168,76,0.08) !important; color: #e8c96a !important; }
-.card-hover { transition: border-color 0.2s, transform 0.15s; cursor: pointer; }
-.card-hover:hover { border-color: rgba(201,168,76,0.4) !important; transform: translateY(-1px); }
-.btn-gold { transition: all 0.2s; }
-.btn-gold:hover:not(:disabled) { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(201,168,76,0.3); }
-.btn-ghost:hover { background: rgba(255,255,255,0.05) !important; }
-.task-row:hover { background: rgba(255,255,255,0.03) !important; }
-.opt-btn { transition: all 0.15s; }
-.opt-btn:hover { border-color: #c9a84c !important; background: rgba(201,168,76,0.08) !important; }
-.starter-btn { transition: all 0.2s; }
-.starter-btn:hover { border-color: #c9a84c !important; color: #e8eaf0 !important; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#f4f5f7;font-family:'IBM Plex Sans',sans-serif;color:#1a1d2e}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#d0d5dd;border-radius:4px}
+input,textarea,button,select{font-family:'IBM Plex Sans',sans-serif}
+input::placeholder,textarea::placeholder{color:#b0b8c8}
+input:focus,textarea:focus,select:focus{outline:none;border-color:#b8943a!important;box-shadow:0 0 0 3px rgba(184,148,58,0.12)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade-up{animation:fadeUp 0.35s ease both}
+.nav-item{transition:all 0.15s;cursor:pointer;border-radius:8px}
+.nav-item:hover{background:rgba(184,148,58,0.08)!important}
+.nav-item.active{background:rgba(184,148,58,0.12)!important;color:#8a6820!important}
+.card{background:#fff;border:1px solid #e8edf3;border-radius:12px}
+.btn-primary{background:linear-gradient(135deg,#b8943a,#8a6820);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:600;font-size:13px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover:not(:disabled){filter:brightness(1.1);box-shadow:0 4px 16px rgba(184,148,58,0.3)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-sec{background:#fff;color:#4a5568;border:1px solid #e8edf3;border-radius:8px;padding:9px 16px;font-weight:500;font-size:13px;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sec:hover{background:#f7f8fa;border-color:#d0d5dd}
+.inp{background:#fff;border:1px solid #e8edf3;border-radius:8px;padding:10px 14px;color:#1a1d2e;font-size:14px;width:100%}
+.ta{background:#fff;border:1px solid #e8edf3;border-radius:8px;padding:12px 14px;color:#1a1d2e;font-size:14px;width:100%;resize:vertical;line-height:1.6}
+.sel{background:#fff;border:1px solid #e8edf3;border-radius:8px;padding:10px 14px;color:#1a1d2e;font-size:14px;width:100%}
+.chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid #e8edf3;background:#fff;transition:all 0.15s;color:#4a5568}
+.chip:hover,.chip.on{border-color:#b8943a;background:rgba(184,148,58,0.08);color:#8a6820;font-weight:600}
+.res{background:#f7f8fa;border:1px solid #e8edf3;border-radius:10px;padding:16px;font-size:14px;line-height:1.8;color:#1a1d2e;white-space:pre-wrap;word-break:break-word;margin-top:16px}
+.div{height:1px;background:#f0f2f5;margin:16px 0}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useRef, useEffect } = React;
-const MODEL = "claude-sonnet-4-20250514";
-const TODAY = new Date().toLocaleDateString("de-DE", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-const C = { bg:"#07090f", surface:"#0e1117", card:"#131720", border:"#1e2433", gold:"#c9a84c", goldLight:"#e8c96a", text:"#e8eaf0", muted:"#5a6278", success:"#34c97a", danger:"#e05252" };
+const {useState,useRef,useEffect}=React;
+const MODEL="claude-sonnet-4-20250514";
+const TODAY=new Date().toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
-// ── API: ruft unseren eigenen Server auf, kein API-Key im Browser ──────────
-async function claude({ messages, system, onText, maxTokens = 1500 }) {
-  let res;
-  try {
-    res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
-    });
-  } catch(e) { throw new Error("Netzwerkfehler: " + e.message); }
-  if (!res.ok) {
-    let msg = "Fehler " + res.status;
-    try { const d = await res.json(); msg = d.error?.message || d.error || msg; } catch {}
-    throw new Error(msg);
-  }
-  let data;
-  try { data = await res.json(); } catch(e) { throw new Error("Ungültige Antwort vom Server"); }
-  if (!data.content || !Array.isArray(data.content)) throw new Error("Unerwartetes Antwortformat");
-  const text = data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
-  if (onText) onText(text);
-  return text;
+async function ai({messages,system,onText,max=1500}){
+  const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL,max_tokens:max,system,messages})});
+  if(!r.ok){let m="Fehler";try{const d=await r.json();m=d.error?.message||d.error||m}catch{}throw new Error(m)}
+  const d=await r.json();
+  if(!d.content?.length)throw new Error("Keine Antwort");
+  const t=d.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
+  if(onText)onText(t);return t;
 }
 
-// ── SHARED ───────────────────────────────────────────────────────────────────
-function Spinner({ size=16 }) {
-  return <div style={{ width:size, height:size, border:`2px solid #1e2433`, borderTopColor:"#c9a84c", borderRadius:"50%", animation:"spin 0.8s linear infinite", flexShrink:0 }}/>;
-}
-function Btn({ children, onClick, disabled, variant="gold", style:s={}, small }) {
-  const base = { border:"none", cursor:disabled?"not-allowed":"pointer", borderRadius:8, display:"inline-flex", alignItems:"center", gap:7, fontWeight:600, fontSize:small?12:13, padding:small?"6px 12px":"10px 18px", opacity:disabled?0.5:1, ...s };
-  if (variant==="gold") return <button className="btn-gold" onClick={onClick} disabled={disabled} style={{...base, background:"linear-gradient(135deg,#c9a84c,#a07830)", color:"#07090f"}}>{children}</button>;
-  if (variant==="ghost") return <button className="btn-ghost" onClick={onClick} disabled={disabled} style={{...base, background:"transparent", color:"#5a6278", border:"1px solid #1e2433"}}>{children}</button>;
-  return <button onClick={onClick} disabled={disabled} style={{...base, background:"#131720", color:"#e8eaf0", border:"1px solid #1e2433"}}>{children}</button>;
-}
-function Tag({ children, color }) {
-  const colors = { gold:{bg:"rgba(201,168,76,.15)",c:"#c9a84c"}, green:{bg:"rgba(52,201,122,.15)",c:"#34c97a"}, red:{bg:"rgba(224,82,82,.15)",c:"#e05252"}, blue:{bg:"rgba(60,120,220,.15)",c:"#4f9bff"} };
-  const col = colors[color]||colors.gold;
-  return <span style={{ background:col.bg, color:col.c, fontSize:10, fontWeight:600, padding:"2px 8px", borderRadius:4, letterSpacing:0.5, textTransform:"uppercase", fontFamily:"'IBM Plex Mono',monospace" }}>{children}</span>;
-}
-function StreamText({ text, loading }) {
-  return <div style={{ fontSize:14, lineHeight:1.8, color:"#e8eaf0", whiteSpace:"pre-wrap", wordBreak:"break-word" }}>{text}{loading && <span style={{ display:"inline-block", width:8, height:14, background:"#c9a84c", marginLeft:2, animation:"pulse 0.8s infinite", verticalAlign:"middle", borderRadius:1 }}/>}</div>;
-}
-function Section({ title, tag, children, style:s={} }) {
-  return (
-    <div className="fade-up" style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:12, overflow:"hidden", ...s }}>
-      {title && <div style={{ padding:"14px 18px", borderBottom:"1px solid #1e2433", display:"flex", alignItems:"center", gap:10 }}><span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:"#5a6278", letterSpacing:1, textTransform:"uppercase" }}>{title}</span>{tag}</div>}
-      <div style={{ padding:18 }}>{children}</div>
-    </div>
-  );
+const Spin=({s=16})=><div style={{width:s,height:s,border:"2px solid #e8edf3",borderTopColor:"#b8943a",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0}}/>;
+
+function Res({text,loading}){
+  if(!text&&!loading)return null;
+  return <div><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><span style={{fontSize:11,fontWeight:600,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Ergebnis</span>{text&&<button className="btn-sec" onClick={()=>navigator.clipboard.writeText(text)} style={{padding:"3px 10px",fontSize:11}}>📋 Kopieren</button>}</div><div className="res">{text}{loading&&<span style={{display:"inline-block",width:7,height:13,background:"#b8943a",marginLeft:3,animation:"pulse .8s infinite",verticalAlign:"middle",borderRadius:1}}/>}</div></div>;
 }
 
-// ── TAB 1: BRIEFING ──────────────────────────────────────────────────────────
-function BriefingTab() {
-  const [sections, setSections] = useState({});
-  const [active, setActive] = useState(null);
-  const topics = [
-    { key:"markt", icon:"📈", label:"Finanz & Märkte", prompt:"Erkläre die wichtigsten aktuellen Themen an den Finanzmärkten: Zinsentwicklung EZB/Fed, Aktienmarkt-Trends, EUR/USD, Inflation. Strukturierte Stichpunkte mit Einschätzung (positiv/negativ/neutral). Auf Deutsch, prägnant." },
-    { key:"immo", icon:"🏢", label:"Immobilien & KfW", prompt:"Fasse die wichtigsten Entwicklungen im deutschen Immobilienmarkt zusammen: Bauzinsen, KfW-Programme 297/298 QNG, Mietmarkt, §7b Sonder-AfA, degressive AfA. 5 Kernpunkte für Kapitalanleger. Auf Deutsch." },
-    { key:"wirtschaft", icon:"🌍", label:"Wirtschaft & Politik", prompt:"Überblick über wirtschaftspolitische Kernthemen Deutschland/EU: Konjunktur, Regulierung, Energiepreise, geopolitische Risiken für Investoren. 5 prägnante Punkte. Auf Deutsch." },
-    { key:"rotary", icon:"🎯", label:"Gesellschaft & Netzwerk", prompt:"Gesellschaftliche und unternehmerische Trendthemen für einen engagierten Rotarier und Kapitalanleger: ESG, Philanthropy, Leadership-Trends, Netzwerkthemen. 4 Punkte. Auf Deutsch." },
+function Card({children,s={}}){return<div className="card fade-up"style={{padding:24,...s}}>{children}</div>}
+function Lbl({t}){return<label style={{fontSize:12,fontWeight:600,color:"#8a95a8",display:"block",marginBottom:4}}>{t}</label>}
+function SH({title,sub}){return<div style={{marginBottom:24}}><h2 style={{fontSize:20,fontWeight:700,fontFamily:"'Playfair Display',serif"}}>{title}</h2>{sub&&<p style={{fontSize:13,color:"#8a95a8",marginTop:4}}>{sub}</p>}</div>}
+
+function Tabs({modes,mode,setMode}){
+  return<div style={{display:"flex",gap:8,marginBottom:24,flexWrap:"wrap"}}>{modes.map(m=><button key={m.id} className={`chip${mode===m.id?" on":""}`} onClick={()=>setMode(m.id)}>{m.icon} {m.label}</button>)}</div>;
+}
+
+// OBJEKTE
+function ObjekteView(){
+  const [mode,setMode]=useState("expose");
+  return<div><SH title="Objekte" sub="Exposés, Texte und Preisbewertungen in Sekunden"/><Tabs modes={[{id:"expose",icon:"📝",label:"Exposé"},{id:"kanal",icon:"📢",label:"Kanal-Anpassung"},{id:"preis",icon:"💶",label:"Preisbewertung"},{id:"titel",icon:"✨",label:"Titel & Slogan"}]} mode={mode} setMode={setMode}/>{mode==="expose"&&<ExposeGen/>}{mode==="kanal"&&<KanalGen/>}{mode==="preis"&&<PreisGen/>}{mode==="titel"&&<TitelGen/>}</div>;
+}
+
+function ExposeGen(){
+  const [f,setF]=useState({typ:"Eigentumswohnung",lage:"",zimmer:"",flaeche:"",preis:"",baujahr:"",besonderheiten:"",ziel:"Kapitalanleger"});
+  const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Erstelle hochwertiges Immobilien-Exposé:\nTyp: ${f.typ} | Lage: ${f.lage} | Zimmer: ${f.zimmer} | Fläche: ${f.flaeche}m² | Preis: ${f.preis}€ | Baujahr: ${f.baujahr} | Zielgruppe: ${f.ziel}\nBesonderheiten: ${f.besonderheiten}\n\nStruktur: Überschrift → Einleitung (emotional) → Beschreibung → Lage → Ausstattung → Fazit & CTA. Professionell, werthaltig, kein Marketingsprech.`}],system:"Erfahrener Immobilienmarketer. Hochwertige Exposé-Texte auf Deutsch.",onText:t=>setRes(t),max:1800})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="OBJEKTTYP"/><select className="sel" value={f.typ} onChange={e=>setF({...f,typ:e.target.value})}>{["Eigentumswohnung","Einfamilienhaus","Mehrfamilienhaus","Doppelhaushälfte","Reihenhaus","Grundstück"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="LAGE"/><input className="inp" value={f.lage} onChange={e=>setF({...f,lage:e.target.value})} placeholder="z.B. Hamm-Heessen, ruhige Lage"/></div>
+    <div><Lbl t="ZIMMER"/><input className="inp" value={f.zimmer} onChange={e=>setF({...f,zimmer:e.target.value})} placeholder="z.B. 3"/></div>
+    <div><Lbl t="FLÄCHE (m²)"/><input className="inp" value={f.flaeche} onChange={e=>setF({...f,flaeche:e.target.value})} placeholder="z.B. 85"/></div>
+    <div><Lbl t="KAUFPREIS (€)"/><input className="inp" value={f.preis} onChange={e=>setF({...f,preis:e.target.value})} placeholder="z.B. 235.000"/></div>
+    <div><Lbl t="BAUJAHR"/><input className="inp" value={f.baujahr} onChange={e=>setF({...f,baujahr:e.target.value})} placeholder="z.B. 1985"/></div>
+    <div><Lbl t="ZIELGRUPPE"/><select className="sel" value={f.ziel} onChange={e=>setF({...f,ziel:e.target.value})}>{["Kapitalanleger","Eigennutzer","Familie","Erstkäufer","Senioren"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="BESONDERHEITEN"/><input className="inp" value={f.besonderheiten} onChange={e=>setF({...f,besonderheiten:e.target.value})} placeholder="z.B. Tiefgarage, Balkon, saniert"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.lage}>{load?<><Spin s={13}/>Generiere…</>:"✨ Exposé erstellen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function KanalGen(){
+  const [expose,setExpose]=useState("");const [kanal,setKanal]=useState("ImmobilienScout24");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const kanaele=["ImmobilienScout24","Immowelt","Website","Instagram","Facebook","Newsletter","Flyer"];
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Passe diesen Exposétext optimal für "${kanal}" an:\n\n${expose}`}],system:"Immobilien-Marketing-Experte. Texte kanalgerecht anpassen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{marginBottom:12}}><Lbl t="ZIELKANAL"/><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{kanaele.map(k=><button key={k} className={`chip${kanal===k?" on":""}`} onClick={()=>setKanal(k)}>{k}</button>)}</div></div><div style={{marginBottom:12}}><Lbl t="ORIGINAL EXPOSÉTEXT"/><textarea className="ta" rows={5} value={expose} onChange={e=>setExpose(e.target.value)} placeholder="Exposétext einfügen…"/></div><button className="btn-primary" onClick={go} disabled={load||!expose.trim()}>{load?<><Spin s={13}/>Anpassen…</>:"📢 Für Kanal anpassen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function PreisGen(){
+  const [f,setF]=useState({typ:"Eigentumswohnung",lage:"",zimmer:"",flaeche:"",baujahr:"",zustand:"gut",preis:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Preisbewertung: ${f.typ} in ${f.lage}, ${f.zimmer} Zi., ${f.flaeche}m², Bj.${f.baujahr}, Zustand: ${f.zustand}. Angefragter Preis: ${f.preis}€.\nEinschätzung: realistisch/zu hoch/zu niedrig, Vergleichswerte NRW/Hamm, Verhandlungsempfehlung.`}],system:"Immobiliengutachter NRW/Hamm. Ehrliche, fundierte Preiseinschätzungen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="TYP"/><select className="sel" value={f.typ} onChange={e=>setF({...f,typ:e.target.value})}>{["Eigentumswohnung","Einfamilienhaus","Mehrfamilienhaus","Doppelhaushälfte"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="LAGE"/><input className="inp" value={f.lage} onChange={e=>setF({...f,lage:e.target.value})} placeholder="z.B. Hamm-Heessen"/></div>
+    <div><Lbl t="ZIMMER"/><input className="inp" value={f.zimmer} onChange={e=>setF({...f,zimmer:e.target.value})} placeholder="3"/></div>
+    <div><Lbl t="FLÄCHE (m²)"/><input className="inp" value={f.flaeche} onChange={e=>setF({...f,flaeche:e.target.value})} placeholder="85"/></div>
+    <div><Lbl t="BAUJAHR"/><input className="inp" value={f.baujahr} onChange={e=>setF({...f,baujahr:e.target.value})} placeholder="1990"/></div>
+    <div><Lbl t="ZUSTAND"/><select className="sel" value={f.zustand} onChange={e=>setF({...f,zustand:e.target.value})}>{["sehr gut","gut","mittel","renovierungsbedürftig"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div style={{gridColumn:"1/-1"}}><Lbl t="ANGEFRAGTER PREIS (€)"/><input className="inp" value={f.preis} onChange={e=>setF({...f,preis:e.target.value})} placeholder="235000"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.lage||!f.preis}>{load?<><Spin s={13}/>Bewerte…</>:"💶 Preis bewerten"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function TitelGen(){
+  const [txt,setTxt]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`5 Titel-Varianten + Slogans für:\n${txt}\n\nJe: Titel (max 80 Z.) + Slogan (max 120 Z.). Tonalitäten: emotional, sachlich, exklusiv, familienorientiert, investitionsorientiert.`}],system:"Immobilien-Texter. Packende, klickstarke Überschriften.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><Lbl t="OBJEKT (STICHPUNKTE)"/><textarea className="ta" rows={3} value={txt} onChange={e=>setTxt(e.target.value)} placeholder="z.B. 3 Zi. ETW, 78m², Hamm-Werries, Balkon, Tiefgarage, Bj.1995, kernsaniert 2020"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!txt.trim()}>{load?<><Spin s={13}/>Generiere…</>:"✨ Titel erstellen"}</button></div><Res text={res} loading={load}/></Card>;
+}
+
+// ANFRAGEN
+function AnfragenView(){
+  const [mode,setMode]=useState("prio");
+  return<div><SH title="Anfragen" sub="Kaufbereitschaft prüfen, antworten, nachfassen"/><Tabs modes={[{id:"prio",icon:"🎯",label:"Kaufbereitschaft"},{id:"antwort",icon:"✉️",label:"Antwort"},{id:"nachfass",icon:"🔄",label:"Nachfassen"},{id:"absage",icon:"🤝",label:"Absage"}]} mode={mode} setMode={setMode}/>{mode==="prio"&&<KaufCheck/>}{mode==="antwort"&&<AntwortGen/>}{mode==="nachfass"&&<NachfassGen/>}{mode==="absage"&&<AbsageGen/>}</div>;
+}
+
+function KaufCheck(){
+  const [a,setA]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Analysiere diese Immobilienanfrage:\n"${a}"\n\n1) Kaufbereitschaft (HOCH/MITTEL/NIEDRIG) mit Begründung\n2) Positive/negative Signale\n3) Empfohlene nächste Schritte\n4) Mögliche Einwände`}],system:"Erfahrener Immobilienmakler. Kaufanfragen präzise analysieren.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><Lbl t="ANFRAGE-TEXT"/><textarea className="ta" rows={5} value={a} onChange={e=>setA(e.target.value} placeholder="Anfrage aus E-Mail, IS24, Immowelt etc. einfügen…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!a.trim()}>{load?<><Spin s={13}/>Analysiere…</>:"🎯 Kaufbereitschaft prüfen"}</button></div><Res text={res} loading={load}/></Card>;
+}
+
+function AntwortGen(){
+  const [f,setF]=useState({anfrage:"",objekt:"",ton:"professionell-freundlich",ziel:"Besichtigung vereinbaren"});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Antwort auf: "${f.anfrage}"\nObjekt: ${f.objekt} | Ton: ${f.ton} | Ziel: ${f.ziel}\nVon: Philipp / Zoeger Immobilien Hamm`}],system:"Immobilienmakler Zoeger Immobilien Hamm. Professionelle, persönliche Antworten.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div style={{gridColumn:"1/-1"}}><Lbl t="ORIGINAL-ANFRAGE"/><textarea className="ta" rows={3} value={f.anfrage} onChange={e=>setF({...f,anfrage:e.target.value})} placeholder="Anfrage des Interessenten…"/></div>
+    <div><Lbl t="OBJEKT"/><input className="inp" value={f.objekt} onChange={e=>setF({...f,objekt:e.target.value})} placeholder="z.B. 3 Zi. ETW Hamm"/></div>
+    <div><Lbl t="TON"/><select className="sel" value={f.ton} onChange={e=>setF({...f,ton:e.target.value})}>{["professionell-freundlich","persönlich-warm","sachlich-direkt","exklusiv-beratend"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="ZIEL"/><select className="sel" value={f.ziel} onChange={e=>setF({...f,ziel:e.target.value})}>{["Besichtigung vereinbaren","Mehr Infos erfragen","Telefonat vorschlagen","Kaufinteresse qualifizieren"].map(t=><option key={t}>{t}</option>)}</select></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.anfrage.trim()}>{load?<><Spin s={13}/>Schreibe…</>:"✉️ Antwort generieren"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function NachfassGen(){
+  const [f,setF]=useState({name:"",objekt:"",kontakt:"Besichtigung",tage:"7",info:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Nachfass-Mail an ${f.name} | Objekt: ${f.objekt} | Letzter Kontakt: ${f.kontakt} vor ${f.tage} Tagen${f.info?" | "+f.info:""}\nFreundlich nachfassen, Interesse wecken, nächsten Schritt vorschlagen. Von Philipp / Zoeger Immobilien Hamm.`}],system:"Immobilienmakler. Freundliche, nicht aufdringliche Nachfass-Mails.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="NAME"/><input className="inp" value={f.name} onChange={e=>setF({...f,name:e.target.value})} placeholder="z.B. Familie Müller"/></div>
+    <div><Lbl t="OBJEKT"/><input className="inp" value={f.objekt} onChange={e=>setF({...f,objekt:e.target.value})} placeholder="z.B. EFH Heessen"/></div>
+    <div><Lbl t="LETZTER KONTAKT"/><select className="sel" value={f.kontakt} onChange={e=>setF({...f,kontakt:e.target.value})}>{["Besichtigung","Erstkontakt","Telefonat","Exposé-Versand"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="VOR X TAGEN"/><input className="inp" value={f.tage} onChange={e=>setF({...f,tage:e.target.value})} placeholder="7"/></div>
+    <div style={{gridColumn:"1/-1"}}><Lbl t="KONTEXT (OPTIONAL)"/><input className="inp" value={f.info} onChange={e=>setF({...f,info:e.target.value})} placeholder="z.B. hatte Bedenken wegen Renovierungsbedarf"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.name||!f.objekt}>{load?<><Spin s={13}/>Schreibe…</>:"🔄 Nachfass-Mail"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function AbsageGen(){
+  const [f,setF]=useState({name:"",grund:"anderes Objekt gefunden",ton:"warm-professionell"});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Absage an ${f.name}. Grund: ${f.grund}. Ton: ${f.ton}. Wertschätzend, Tür offenhalten. Von Philipp / Zoeger Immobilien Hamm.`}],system:"Immobilienmakler. Absagen die positive Beziehung erhalten.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="NAME"/><input className="inp" value={f.name} onChange={e=>setF({...f,name:e.target.value})} placeholder="z.B. Herr Schmidt"/></div>
+    <div><Lbl t="GRUND"/><select className="sel" value={f.grund} onChange={e=>setF({...f,grund:e.target.value})}>{["anderes Objekt gefunden","Objekt bereits verkauft","kein Interesse mehr","Finanzierung gescheitert","Preis zu hoch"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="TON"/><select className="sel" value={f.ton} onChange={e=>setF({...f,ton:e.target.value})}>{["warm-professionell","sachlich-kurz","empathisch-persönlich"].map(t=><option key={t}>{t}</option>)}</select></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.name}>{load?<><Spin s={13}/>Schreibe…</>:"🤝 Absage verfassen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+// MARKT
+function MarktView(){
+  const [sections,setSections]=useState({});const [active,setActive]=useState(null);
+  const topics=[
+    {key:"zinsen",icon:"📈",label:"Bauzinsen & EZB",p:"Aktuelle Zinssituation Immobilienfinanzierung Deutschland: Bauzins 10/15/20J, EZB-Tendenz, 6-Monats-Prognose. Konkrete Zahlen für Maklerberatung."},
+    {key:"hamm",icon:"🏘️",label:"Markt Hamm & NRW",p:"Immobilienmarkt Hamm NRW: Preisniveau ETW/EFH, Trends, Angebot vs. Nachfrage, Vermarktungsdauer, lokale Besonderheiten. Praxistipps für Makler."},
+    {key:"de",icon:"🇩🇪",label:"Deutschland",p:"Nationaler Immobilienmarkt: Preistrends, A/B/C-Städte vs. Umland, Kauf vs. Miete, Transaktionsvolumen, für Kapitalanlegerberatung."},
+    {key:"kfw",icon:"🏦",label:"KfW & Förderungen",p:"Aktuelle KfW-Programme: 297/298 KfW40/55, Zinssätze, QNG-Anforderungen, Sonder-AfA §7b, degressive AfA. Was Makler Kunden empfehlen können."},
+    {key:"recht",icon:"⚖️",label:"Recht & Steuern",p:"Rechtliche/steuerliche Entwicklungen: Grunderwerbsteuer NRW, Maklergesetz, BGH-Urteile, steuerliche Optimierung Kapitalanleger."},
   ];
-  const loadTopic = async (t) => {
-    if (sections[t.key] && !sections[t.key].loading) { setActive(t.key); return; }
-    setActive(t.key);
-    setSections(s => ({ ...s, [t.key]:{ text:"", loading:true } }));
-    try {
-      await claude({ messages:[{role:"user",content:t.prompt}], system:"Du bist ein präziser Finanz- und Kapitalmarkt-Analyst mit tiefem Wissen über deutsche Immobilienmärkte, Steuerrecht und Makroökonomie. Antworte strukturiert, prägnant und praxisnah auf Deutsch.", onText:text=>setSections(s=>({...s,[t.key]:{text,loading:false}})) });
-    } catch(e) { setSections(s=>({...s,[t.key]:{text:`⚠️ ${e.message}`,loading:false}})); }
+  const load=async(t)=>{
+    if(sections[t.key]&&!sections[t.key].loading){setActive(t.key);return}
+    setActive(t.key);setSections(s=>({...s,[t.key]:{text:"",loading:true}}));
+    try{await ai({messages:[{role:"user",content:t.p}],system:"Immobilienmarkt-Experte Deutschland/NRW. Präzise, aktuelle Einschätzungen für Makler.",onText:text=>setSections(s=>({...s,[t.key]:{text,loading:false}})),max:1500})}
+    catch(e){setSections(s=>({...s,[t.key]:{text:"⚠️ "+e.message,loading:false}}))}
   };
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        {topics.map((t,i) => (
-          <div key={t.key} className="card-hover" onClick={()=>loadTopic(t)} style={{ background:active===t.key?"rgba(201,168,76,0.08)":"#131720", border:`1px solid ${active===t.key?"#c9a84c":"#1e2433"}`, borderRadius:10, padding:"14px 16px", animation:`fadeUp 0.3s ${i*0.07}s both` }}>
-            <div style={{ fontSize:22, marginBottom:6 }}>{t.icon}</div>
-            <div style={{ fontSize:13, fontWeight:600, color:active===t.key?"#c9a84c":"#e8eaf0" }}>{t.label}</div>
-            <div style={{ fontSize:11, color:"#5a6278", marginTop:2 }}>{sections[t.key]?(sections[t.key].loading?"Lädt…":"✓ Geladen"):"Anklicken zum Laden"}</div>
-          </div>
-        ))}
-      </div>
-      {active && sections[active] && (
-        <Section title={topics.find(t=>t.key===active)?.label} tag={sections[active].loading?<Spinner size={12}/>:<Tag color="green">Bereit</Tag>}>
-          <StreamText text={sections[active].text} loading={sections[active].loading}/>
-        </Section>
-      )}
-      {!active && <div style={{ textAlign:"center", padding:"40px 20px", color:"#5a6278", fontSize:13 }}>Wähle ein Thema für dein Briefing</div>}
+  return<div><SH title="Markt & Briefing" sub="Aktuelle Einschätzungen für Hamm, NRW und Deutschland"/>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10,marginBottom:24}}>
+      {topics.map((t,i)=><div key={t.key} className="card" onClick={()=>load(t)} style={{padding:16,cursor:"pointer",border:`1px solid ${active===t.key?"#b8943a":"#e8edf3"}`,background:active===t.key?"rgba(184,148,58,0.04)":"#fff",animation:`fadeUp .3s ${i*.07}s both`}}>
+        <div style={{fontSize:24,marginBottom:8}}>{t.icon}</div>
+        <div style={{fontSize:13,fontWeight:600,color:active===t.key?"#8a6820":"#1a1d2e"}}>{t.label}</div>
+        <div style={{fontSize:11,color:"#8a95a8",marginTop:3}}>{sections[t.key]?(sections[t.key].loading?"Lädt…":"✓ Geladen"):"Anklicken"}</div>
+      </div>)}
     </div>
-  );
+    {active&&sections[active]&&<Card><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><span style={{fontWeight:600}}>{topics.find(t=>t.key===active)?.label}</span>{sections[active].loading?<Spin s={14}/>:<span style={{fontSize:11,background:"rgba(22,163,74,.1)",color:"#166534",padding:"2px 8px",borderRadius:10,fontWeight:600}}>Geladen</span>}</div><div style={{fontSize:14,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{sections[active].text}{sections[active].loading&&<span style={{display:"inline-block",width:7,height:13,background:"#b8943a",marginLeft:3,animation:"pulse .8s infinite",verticalAlign:"middle",borderRadius:1}}/>}</div></Card>}
+  </div>;
 }
 
-// ── TAB 2: CHALLENGE ─────────────────────────────────────────────────────────
-function ChallengeTab() {
-  const [phase, setPhase] = useState("start");
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [results, setResults] = useState(null);
-  const [topic, setTopic] = useState("gemischt");
-  const [level, setLevel] = useState("mittel");
-  const topics = ["Immobilien & KfW","Finanzmärkte & ETF","Steuerstrategie","Makroökonomie","gemischt"];
-  const levels = ["leicht","mittel","anspruchsvoll"];
-  const generateQuiz = async () => {
-    setPhase("loading"); setAnswers({}); setResults(null);
-    const prompt = `Erstelle 4 Multiple-Choice-Fragen zum Thema "${topic}" auf Niveau "${level}" für einen deutschen Kapitalanleger.\n\nGib NUR dieses JSON zurück, kein Markdown, keine Backticks:\n{"questions":[{"id":1,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."},{"id":2,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"B","explanation":"..."},{"id":3,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"C","explanation":"..."},{"id":4,"question":"...?","options":["A) ...","B) ...","C) ...","D) ..."],"correct":"A","explanation":"..."}]}`;
-    try {
-      const raw = await claude({ messages:[{role:"user",content:prompt}], system:"Du bist Finanz-Experte. Antworte AUSSCHLIESSLICH mit rohem JSON ohne Markdown.", maxTokens:1800 });
-      const clean = raw.replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/,"").trim();
-      const s=clean.indexOf("{"), e=clean.lastIndexOf("}");
-      if(s===-1||e===-1) throw new Error("Kein JSON gefunden");
-      const parsed = JSON.parse(clean.slice(s,e+1));
-      if(!parsed.questions?.length) throw new Error("Keine Fragen erhalten");
-      setQuestions(parsed.questions); setPhase("quiz");
-    } catch(e) { setPhase("start"); alert("Fehler: "+e.message); }
-  };
-  const submit = () => {
-    let correct=0;
-    const res = questions.map(q=>{ const ua=answers[q.id]; const ok=ua&&ua.startsWith(q.correct); if(ok)correct++; return{...q,userAnswer:ua,isCorrect:ok}; });
-    setResults({items:res,score:correct,total:questions.length}); setPhase("result");
-  };
-  const reset = () => { setPhase("start"); setQuestions([]); setAnswers({}); setResults(null); };
-  if(phase==="start") return (
-    <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-      <Section title="Thema wählen"><div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>{topics.map(t=><button key={t} className="opt-btn" onClick={()=>setTopic(t)} style={{ padding:"7px 14px", borderRadius:8, fontSize:13, cursor:"pointer", fontWeight:500, border:`1px solid ${topic===t?"#c9a84c":"#1e2433"}`, background:topic===t?"rgba(201,168,76,0.12)":"#0e1117", color:topic===t?"#c9a84c":"#e8eaf0" }}>{t}</button>)}</div></Section>
-      <Section title="Schwierigkeit"><div style={{ display:"flex", gap:8 }}>{levels.map((l,i)=><button key={l} className="opt-btn" onClick={()=>setLevel(l)} style={{ flex:1, padding:"10px", borderRadius:8, fontSize:13, cursor:"pointer", fontWeight:500, border:`1px solid ${level===l?"#c9a84c":"#1e2433"}`, background:level===l?"rgba(201,168,76,0.12)":"#0e1117", color:level===l?"#c9a84c":"#5a6278" }}>{"⬡".repeat(i+1)} {l}</button>)}</div></Section>
-      <Btn onClick={generateQuiz} style={{ alignSelf:"center", padding:"12px 32px" }}>Challenge starten →</Btn>
-    </div>
-  );
-  if(phase==="loading") return <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:16, padding:"60px 20px" }}><Spinner size={32}/><div style={{ color:"#5a6278", fontSize:14 }}>Generiere deine Challenge…</div></div>;
-  if(phase==="quiz") return (
-    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}><span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, color:"#5a6278" }}>{topic.toUpperCase()} · {level.toUpperCase()}</span><Tag color="blue">{Object.keys(answers).length}/{questions.length} beantwortet</Tag></div>
-      {questions.map((q,i)=>(
-        <div key={q.id} style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:12, padding:18, animation:`fadeUp 0.3s ${i*0.08}s both` }}>
-          <div style={{ fontSize:12, color:"#5a6278", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace" }}>Frage {i+1}</div>
-          <div style={{ fontSize:14, fontWeight:600, color:"#e8eaf0", marginBottom:14, lineHeight:1.6 }}>{q.question}</div>
-          <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-            {q.options.map(opt=><button key={opt} className="opt-btn" onClick={()=>setAnswers(a=>({...a,[q.id]:opt}))} style={{ padding:"9px 14px", borderRadius:8, textAlign:"left", cursor:"pointer", border:`1px solid ${answers[q.id]===opt?"#c9a84c":"#1e2433"}`, background:answers[q.id]===opt?"rgba(201,168,76,0.12)":"#0e1117", color:answers[q.id]===opt?"#c9a84c":"#e8eaf0", fontSize:13 }}>{opt}</button>)}
-          </div>
-        </div>
-      ))}
-      <Btn onClick={submit} disabled={Object.keys(answers).length<questions.length} style={{ alignSelf:"center", padding:"12px 32px" }}>Auswerten →</Btn>
-    </div>
-  );
-  if(phase==="result"&&results) {
-    const pct=Math.round((results.score/results.total)*100);
-    const col=pct>=75?"#34c97a":pct>=50?"#c9a84c":"#e05252";
-    return (
-      <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-        <div className="fade-up" style={{ background:"#131720", border:`1px solid ${col}40`, borderRadius:12, padding:24, textAlign:"center" }}>
-          <div style={{ fontSize:48, fontFamily:"'Playfair Display',serif", color:col, fontWeight:700 }}>{pct}%</div>
-          <div style={{ color:"#e8eaf0", fontSize:15, marginTop:4 }}>{results.score} von {results.total} richtig</div>
-          <div style={{ color:"#5a6278", fontSize:13, marginTop:6 }}>{pct>=75?"Ausgezeichnet! 🏆":pct>=50?"Gut gemacht! 💪":"Weiter üben! 📚"}</div>
-        </div>
-        {results.items.map((q,i)=>(
-          <div key={q.id} style={{ background:"#131720", border:`1px solid ${q.isCorrect?"#34c97a40":"#e0525240"}`, borderRadius:12, padding:16, animation:`fadeUp 0.3s ${i*0.08}s both` }}>
-            <div style={{ display:"flex", gap:10 }}><span style={{ fontSize:16 }}>{q.isCorrect?"✅":"❌"}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:"#e8eaf0", marginBottom:6 }}>{q.question}</div>
-                {!q.isCorrect&&<div style={{ fontSize:12, color:"#e05252", marginBottom:4 }}>Deine Antwort: {q.userAnswer||"–"}</div>}
-                <div style={{ fontSize:12, color:"#34c97a", marginBottom:8 }}>Korrekt: {q.options.find(o=>o.startsWith(q.correct))}</div>
-                <div style={{ fontSize:12, color:"#5a6278", lineHeight:1.6, background:"#0e1117", padding:"8px 12px", borderRadius:6 }}>💡 {q.explanation}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-        <Btn variant="ghost" onClick={reset} style={{ alignSelf:"center" }}>Neue Challenge</Btn>
-      </div>
-    );
-  }
-  return null;
+// KOMMUNIKATION
+function KommunikationView(){
+  const [mode,setMode]=useState("email");
+  return<div><SH title="Kommunikation & Marketing" sub="E-Mails, Social Media, Newsletter, Akquise"/><Tabs modes={[{id:"email",icon:"✉️",label:"E-Mail"},{id:"social",icon:"📱",label:"Social Media"},{id:"newsletter",icon:"📰",label:"Newsletter"},{id:"akquise",icon:"🎯",label:"Akquise"}]} mode={mode} setMode={setMode}/>{mode==="email"&&<EmailGen/>}{mode==="social"&&<SocialGen/>}{mode==="newsletter"&&<NewsletterGen/>}{mode==="akquise"&&<AkquiseGen/>}</div>;
 }
 
-// ── TAB 3: AUFGABEN ──────────────────────────────────────────────────────────
-function TasksTab() {
-  const [tasks, setTasks] = useState([
-    {id:1,text:"KfW-Antrag für Wohneinheit prüfen",prio:"hoch",done:false},
-    {id:2,text:"Quartalsbericht vorbereiten",prio:"mittel",done:false},
-    {id:3,text:"Rotary Meeting Vortrag planen",prio:"mittel",done:false},
-  ]);
-  const [input, setInput] = useState("");
-  const [aiResult, setAiResult] = useState("");
-  const [structureLoading, setStructureLoading] = useState(false);
-  const addTask = () => { if(!input.trim())return; setTasks(t=>[...t,{id:Date.now(),text:input.trim(),prio:"mittel",done:false}]); setInput(""); };
-  const toggle = id => setTasks(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
-  const remove = id => setTasks(t=>t.filter(x=>x.id!==id));
-  const cyclePrio = id => { const p=["hoch","mittel","niedrig"]; setTasks(t=>t.map(x=>x.id===id?{...x,prio:p[(p.indexOf(x.prio)+1)%3]}:x)); };
-  const structureWithAI = async () => {
-    setStructureLoading(true); setAiResult("");
-    const list = tasks.filter(t=>!t.done).map(t=>`- ${t.text} [${t.prio}]`).join("\n");
-    try { await claude({ messages:[{role:"user",content:`Erstelle einen strukturierten Tagesplan mit Zeitblöcken:\n\n${list}`}], system:"Du bist ein Produktivitätsassistent für einen Immobilieninvestor und Rotary-Mitglied. Klare, umsetzbare Tagespläne auf Deutsch.", onText:t=>setAiResult(t) }); }
-    catch(e) { setAiResult("⚠️ "+e.message); }
-    setStructureLoading(false);
-  };
-  const prioColors = {hoch:"#e05252",mittel:"#c9a84c",niedrig:"#34c97a"};
-  const open=tasks.filter(t=>!t.done), done=tasks.filter(t=>t.done);
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <div style={{ display:"flex", gap:8 }}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addTask()} placeholder="Neue Aufgabe hinzufügen…" style={{ flex:1, background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"10px 14px", color:"#e8eaf0", fontSize:14 }}/>
-        <Btn onClick={addTask}>+ Hinzufügen</Btn>
-      </div>
-      {open.length>0&&(
-        <Section title="Offen" tag={<Tag>{open.length}</Tag>} style={{ padding:0 }}>
-          {open.map((t,i)=>(
-            <div key={t.id} className="task-row" style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 18px", borderBottom:i<open.length-1?"1px solid #1e2433":"none" }}>
-              <div onClick={()=>toggle(t.id)} style={{ width:18, height:18, borderRadius:5, border:"2px solid #1e2433", cursor:"pointer", flexShrink:0, transition:"border-color 0.2s" }} onMouseEnter={e=>e.currentTarget.style.borderColor="#c9a84c"} onMouseLeave={e=>e.currentTarget.style.borderColor="#1e2433"}/>
-              <span style={{ flex:1, fontSize:13, color:"#e8eaf0" }}>{t.text}</span>
-              <span onClick={()=>cyclePrio(t.id)} style={{ fontSize:10, color:prioColors[t.prio], fontFamily:"'IBM Plex Mono',monospace", cursor:"pointer", padding:"2px 6px", border:`1px solid ${prioColors[t.prio]}40`, borderRadius:4 }}>{t.prio}</span>
-              <button onClick={()=>remove(t.id)} style={{ background:"none", border:"none", color:"#5a6278", cursor:"pointer", fontSize:16, lineHeight:1 }}>×</button>
-            </div>
-          ))}
-        </Section>
-      )}
-      <Btn onClick={structureWithAI} disabled={structureLoading||open.length===0} style={{ justifyContent:"center" }}>
-        {structureLoading?<><Spinner size={13}/> Analysiere…</>:"🤖 KI-Tagesplan erstellen"}
-      </Btn>
-      {aiResult&&<Section title="Dein KI-Tagesplan" tag={<Tag color="gold">Heute</Tag>}><StreamText text={aiResult} loading={structureLoading}/></Section>}
-      {done.length>0&&<Section title="Erledigt" tag={<Tag color="green">{done.length}</Tag>}>{done.map(t=><div key={t.id} onClick={()=>toggle(t.id)} style={{ fontSize:13, color:"#5a6278", textDecoration:"line-through", cursor:"pointer", padding:"4px 0" }}>{t.text}</div>)}</Section>}
-    </div>
-  );
+function EmailGen(){
+  const [f,setF]=useState({typ:"Exposé-Versand",emp:"",objekt:"",ton:"professionell",extra:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`E-Mail Typ: "${f.typ}" | An: ${f.emp||"Interessenten"} | Objekt: ${f.objekt} | Ton: ${f.ton}${f.extra?" | "+f.extra:""}\nAbsender: Philipp / Zoeger Immobilien Hamm. Mit Betreffzeile.`}],system:"Immobilienmakler. Professionelle E-Mails mit Betreffzeile.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="TYP"/><select className="sel" value={f.typ} onChange={e=>setF({...f,typ:e.target.value})}>{["Exposé-Versand","Besichtigungsbestätigung","Nach Besichtigung","Kaufangebot erhalten","Notartermin","Übergabe-Vorbereitung","Bewertungsanfrage"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="EMPFÄNGER"/><input className="inp" value={f.emp} onChange={e=>setF({...f,emp:e.target.value})} placeholder="z.B. Familie Müller"/></div>
+    <div><Lbl t="OBJEKT"/><input className="inp" value={f.objekt} onChange={e=>setF({...f,objekt:e.target.value})} placeholder="z.B. EFH Heessen"/></div>
+    <div><Lbl t="TON"/><select className="sel" value={f.ton} onChange={e=>setF({...f,ton:e.target.value})}>{["professionell","persönlich-warm","sachlich","exklusiv-beratend"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div style={{gridColumn:"1/-1"}}><Lbl t="EXTRA-INFOS"/><input className="inp" value={f.extra} onChange={e=>setF({...f,extra:e.target.value})} placeholder="Optional: z.B. Besichtigung war Dienstag, 3 Kinder"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load}>{load?<><Spin s={13}/>Schreibe…</>:"✉️ E-Mail erstellen"}</button><Res text={res} loading={load}/></Card>;
 }
 
-// ── TAB 4: SCHREIBEN ─────────────────────────────────────────────────────────
-function WritingTab() {
-  const [template, setTemplate] = useState(null);
-  const [briefing, setBriefing] = useState("");
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const templates = [
-    {id:"email",icon:"✉️",label:"E-Mail",hint:"An wen, Betreff, Kernaussage",system:"Schreibe professionelle, klare Business-E-Mails auf Deutsch."},
-    {id:"expose",icon:"🏠",label:"Exposé",hint:"Lage, Größe, Besonderheiten, Zielgruppe",system:"Du bist Experte für Immobilienmarketing. Schreibe überzeugende Exposé-Texte auf Deutsch."},
-    {id:"report",icon:"📊",label:"Investmentbericht",hint:"Objekt/Anlage, Eckdaten, Bewertungsziel",system:"Du bist Finanzanalyst. Schreibe strukturierte Investment-Reports auf Deutsch."},
-    {id:"speech",icon:"🎤",label:"Rede / Vortrag",hint:"Thema, Anlass, Zielgruppe, Länge",system:"Du bist Redenschreiber für Wirtschaft und Networking. Schreibe inspirierende Reden auf Deutsch."},
-    {id:"angebot",icon:"📋",label:"Angebot",hint:"Leistung, Preisrahmen, Empfänger",system:"Schreibe überzeugende Angebote und Proposals auf Deutsch."},
-    {id:"memo",icon:"📝",label:"Memo",hint:"Kernaussage, Empfänger, Dringlichkeit",system:"Schreibe klare, präzise Business-Memos auf Deutsch."},
-  ];
-  const generate = async () => {
-    if(!briefing.trim()||!template)return;
-    setLoading(true); setResult("");
-    const t=templates.find(x=>x.id===template);
-    try { await claude({messages:[{role:"user",content:`Erstelle (${t.label}):\n\n${briefing}`}],system:t.system,onText:t=>setResult(t)}); }
-    catch(e) { setResult("⚠️ "+e.message); }
-    setLoading(false);
-  };
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <Section title="Format wählen">
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
-          {templates.map((t,i)=>(
-            <button key={t.id} className="card-hover opt-btn" onClick={()=>setTemplate(t.id)} style={{ background:template===t.id?"rgba(201,168,76,0.1)":"#0e1117", border:`1px solid ${template===t.id?"#c9a84c":"#1e2433"}`, borderRadius:8, padding:"12px 10px", textAlign:"center", animation:`fadeUp 0.25s ${i*0.05}s both` }}>
-              <div style={{ fontSize:20, marginBottom:4 }}>{t.icon}</div>
-              <div style={{ fontSize:11, color:template===t.id?"#c9a84c":"#5a6278", fontWeight:600, lineHeight:1.3 }}>{t.label}</div>
-            </button>
-          ))}
-        </div>
-      </Section>
-      {template&&<>
-        <textarea value={briefing} onChange={e=>setBriefing(e.target.value)} rows={3} placeholder={`Briefing: ${templates.find(t=>t.id===template)?.hint}…`} style={{ background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"12px 14px", color:"#e8eaf0", fontSize:14, resize:"vertical", lineHeight:1.6 }}/>
-        <Btn onClick={generate} disabled={loading||!briefing.trim()} style={{ alignSelf:"flex-start" }}>{loading?<><Spinner size={13}/> Schreibe…</>:"✍️ Text generieren"}</Btn>
-      </>}
-      {result&&<Section title="Ergebnis" tag={<button onClick={()=>navigator.clipboard.writeText(result)} style={{ background:"none", border:"1px solid #1e2433", borderRadius:5, color:"#5a6278", fontSize:11, padding:"2px 8px", cursor:"pointer" }}>📋 Kopieren</button>}><StreamText text={result} loading={loading}/></Section>}
-    </div>
-  );
+function SocialGen(){
+  const [f,setF]=useState({obj:"",kanal:"Instagram",stil:"emotional",cta:"Link in Bio"});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Social-Media-Post für ${f.kanal}:\nObjekt: ${f.obj}\nStil: ${f.stil} | CTA: "${f.cta}" | Marke: Zoeger Immobilien Hamm${f.kanal==="Instagram"?"\nMit #ImmobilienHamm und weiteren Hashtags":""}`}],system:"Social-Media-Manager Immobilien. Ansprechende Posts für Reichweite und Anfragen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div style={{gridColumn:"1/-1"}}><Lbl t="OBJEKT"/><textarea className="ta" rows={2} value={f.obj} onChange={e=>setF({...f,obj:e.target.value})} placeholder="z.B. Architektenhaus 698.000€, Hamm-Heessen, 6 Zi., Pool, Bj.2019"/></div>
+    <div><Lbl t="KANAL"/><select className="sel" value={f.kanal} onChange={e=>setF({...f,kanal:e.target.value})}>{["Instagram","Facebook","LinkedIn","Twitter/X"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="STIL"/><select className="sel" value={f.stil} onChange={e=>setF({...f,stil:e.target.value})}>{["emotional","informativ","exklusiv","locker","sachlich"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="CALL-TO-ACTION"/><input className="inp" value={f.cta} onChange={e=>setF({...f,cta:e.target.value})} placeholder="Link in Bio / DM für Infos"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.obj.trim()}>{load?<><Spin s={13}/>Erstelle…</>:"📱 Post erstellen"}</button><Res text={res} loading={load}/></Card>;
 }
 
-// ── TAB 5: SPARRING ──────────────────────────────────────────────────────────
-function SparringTab() {
-  const [messages, setMessages] = useState([{role:"assistant",content:"Lass uns deine Idee analysieren. Pitch mir dein Konzept – ich hinterfrage, schärfe und helfe dir, blinde Flecken zu finden. Was liegt an?"}]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const bottomRef = useRef(null);
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
-  const send = async () => {
-    if(!input.trim()||loading)return;
-    const userMsg={role:"user",content:input.trim()};
-    const history=[...messages,userMsg];
-    setMessages([...history,{role:"assistant",content:"",loading:true}]);
-    setInput(""); setLoading(true);
-    try {
-      let response="";
-      await claude({ messages:history.map(m=>({role:m.role,content:m.content})), system:`Du bist ein kritisch-konstruktiver Sparringspartner für Philipp – erfahrener Kapitalanleger, NRW, Rotary-Mitglied, Fokus Immobilien & Finanzen. Ideen hinterfragen, Schwachstellen aufdecken, Chancen identifizieren. Stil: direkt, prägnant, auf Augenhöhe. Sprache: Deutsch. 3–6 Sätze pro Antwort.`, onText:t=>{response=t;} });
-      setMessages([...history,{role:"assistant",content:response}]);
-    } catch(e) { setMessages([...history,{role:"assistant",content:`⚠️ ${e.message}`}]); }
-    setLoading(false);
+function NewsletterGen(){
+  const [f,setF]=useState({thema:"Neue Objekte",objekte:"",markt:"",ton:"persönlich"});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Newsletter Zoeger Immobilien Hamm:\nThema: ${f.thema} | Ton: ${f.ton}\nObjekte: ${f.objekte}\nMarktinfo: ${f.markt}\nMit Betreffzeile, persönlicher Begrüßung, Inhalt, Abschluss.`}],system:"Immobilienmarketer. Newsletter die Kunden binden und Anfragen erzeugen.",onText:t=>setRes(t),max:1800})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="THEMA"/><select className="sel" value={f.thema} onChange={e=>setF({...f,thema:e.target.value})}>{["Neue Objekte","Marktbericht","Frühjahr-Special","Zinsentwicklung","Tipps Käufer","Tipps Verkäufer","Jahresrückblick"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="TON"/><select className="sel" value={f.ton} onChange={e=>setF({...f,ton:e.target.value})}>{["persönlich","informativ","exklusiv","locker-freundlich"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="NEUE OBJEKTE"/><textarea className="ta" rows={2} value={f.objekte} onChange={e=>setF({...f,objekte:e.target.value})} placeholder="z.B. EFH Heessen 698T€, ETW Werries 235T€"/></div>
+    <div><Lbl t="MARKTINFO (OPTIONAL)"/><textarea className="ta" rows={2} value={f.markt} onChange={e=>setF({...f,markt:e.target.value})} placeholder="z.B. Zinsen gesunken, guter Kaufzeitpunkt"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load}>{load?<><Spin s={13}/>Schreibe…</>:"📰 Newsletter erstellen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function AkquiseGen(){
+  const [f,setF]=useState({typ:"Eigentümeranschreiben",lage:"",ziel:"Verkaufsauftrag gewinnen",info:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Akquise-Text: ${f.typ}\nZielgruppe: ${f.lage} | Ziel: ${f.ziel}${f.info?" | "+f.info:""}\nVon: Philipp / Zoeger Immobilien Hamm. Überzeugend, Mehrwert kommunizieren, nicht aufdringlich.`}],system:"Erfahrener Immobilienmakler. Akquise-Texte die Vertrauen aufbauen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="TYP"/><select className="sel" value={f.typ} onChange={e=>setF({...f,typ:e.target.value})}>{["Eigentümeranschreiben","Suchanfrage für Käufer","Nachbarschaftsmailing","Postkarte","LinkedIn-Nachricht","Anruf-Script"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="ZIELGRUPPE / LAGE"/><input className="inp" value={f.lage} onChange={e=>setF({...f,lage:e.target.value})} placeholder="z.B. Eigentümer in Hamm-Heessen"/></div>
+    <div><Lbl t="ZIEL"/><select className="sel" value={f.ziel} onChange={e=>setF({...f,ziel:e.target.value})}>{["Verkaufsauftrag gewinnen","Bewertungsgespräch vereinbaren","Käufer finden","Bekanntheit steigern"].map(t=><option key={t}>{t}</option>)}</select></div>
+    <div><Lbl t="KONTEXT (OPTIONAL)"/><input className="inp" value={f.info} onChange={e=>setF({...f,info:e.target.value})} placeholder="z.B. suche EFH für Familie mit Kindern"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load}>{load?<><Spin s={13}/>Schreibe…</>:"🎯 Akquise-Text erstellen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+// BÜRO
+function BueroView(){
+  const [mode,setMode]=useState("aufgaben");
+  return<div><SH title="Büro & Organisation" sub="Aufgaben, Protokolle und Checklisten"/><Tabs modes={[{id:"aufgaben",icon:"✅",label:"Aufgaben"},{id:"besichtigung",icon:"📋",label:"Besichtigung"},{id:"uebergabe",icon:"🔑",label:"Übergabe"},{id:"checkliste",icon:"📌",label:"Checklisten"}]} mode={mode} setMode={setMode}/>{mode==="aufgaben"&&<Aufgaben/>}{mode==="besichtigung"&&<BesichtigungsProt/>}{mode==="uebergabe"&&<UebergabeProt/>}{mode==="checkliste"&&<ChecklistenGen/>}</div>;
+}
+
+function Aufgaben(){
+  const [tasks,setTasks]=useState([{id:1,text:"KfW-Antrag Z-04531 prüfen",prio:"hoch",done:false},{id:2,text:"Besichtigung EFH Heessen vorbereiten",prio:"hoch",done:false},{id:3,text:"Exposé Tulpenstraße überarbeiten",prio:"mittel",done:false},{id:4,text:"Newsletter Mai versenden",prio:"mittel",done:false}]);
+  const [inp,setInp]=useState("");const [plan,setPlan]=useState("");const [pl,setPl]=useState(false);
+  const add=()=>{if(!inp.trim())return;setTasks(t=>[...t,{id:Date.now(),text:inp.trim(),prio:"mittel",done:false}]);setInp("")};
+  const tog=id=>setTasks(t=>t.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const rem=id=>setTasks(t=>t.filter(x=>x.id!==id));
+  const cyc=id=>{const p=["hoch","mittel","niedrig"];setTasks(t=>t.map(x=>x.id===id?{...x,prio:p[(p.indexOf(x.prio)+1)%3]}:x))};
+  const mkPlan=async()=>{setPl(true);setPlan("");const l=tasks.filter(t=>!t.done).map(t=>`- ${t.text} [${t.prio}]`).join("\n");try{await ai({messages:[{role:"user",content:`Tagesplan für Immobilienmakler:\n${l}\nMit Zeitblöcken und Prioritätsbegründung.`}],system:"Produktivitäts-Coach für Immobilienmakler.",onText:t=>setPlan(t)})}catch(e){setPlan("⚠️ "+e.message)}setPl(false)};
+  const pc={hoch:"#dc2626",mittel:"#b8943a",niedrig:"#16a34a"};
+  const open=tasks.filter(t=>!t.done),done=tasks.filter(t=>t.done);
+  return<div style={{display:"flex",flexDirection:"column",gap:16}}>
+    <Card><div style={{display:"flex",gap:8,marginBottom:16}}><input className="inp" value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder="Neue Aufgabe…"/><button className="btn-primary" onClick={add}>+ Hinzufügen</button></div>
+      {open.length>0&&<><div style={{fontSize:11,fontWeight:600,color:"#8a95a8",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Offen ({open.length})</div>
+      {open.map((t,i)=><div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<open.length-1?"1px solid #f0f2f5":"none"}}>
+        <div onClick={()=>tog(t.id)} style={{width:18,height:18,borderRadius:5,border:"2px solid #d0d5dd",cursor:"pointer",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.borderColor="#b8943a"} onMouseLeave={e=>e.currentTarget.style.borderColor="#d0d5dd"}/>
+        <span style={{flex:1,fontSize:14}}>{t.text}</span>
+        <span onClick={()=>cyc(t.id)} style={{fontSize:10,fontWeight:600,color:pc[t.prio],cursor:"pointer",padding:"2px 8px",border:`1px solid ${pc[t.prio]}30`,borderRadius:10}}>{t.prio}</span>
+        <button onClick={()=>rem(t.id)} style={{background:"none",border:"none",color:"#b0b8c8",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>
+      </div>)}</>}
+      {open.length>0&&<button className="btn-primary" onClick={mkPlan} disabled={pl} style={{marginTop:16}}>{pl?<><Spin s={13}/>Plane…</>:"🤖 KI-Tagesplan"}</button>}
+      {done.length>0&&<><div className="div"/><div style={{fontSize:11,fontWeight:600,color:"#8a95a8",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Erledigt ({done.length})</div>{done.map(t=><div key={t.id} onClick={()=>tog(t.id)} style={{fontSize:13,color:"#b0b8c8",textDecoration:"line-through",cursor:"pointer",padding:"4px 0"}}>{t.text}</div>)}</>}
+    </Card>
+    {plan&&<Card><div style={{fontSize:12,fontWeight:600,color:"#8a95a8",marginBottom:12,textTransform:"uppercase",letterSpacing:.5}}>KI-Tagesplan</div><div style={{fontSize:14,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{plan}{pl&&<span style={{display:"inline-block",width:7,height:13,background:"#b8943a",marginLeft:3,animation:"pulse .8s infinite",verticalAlign:"middle",borderRadius:1}}/>}</div></Card>}
+  </div>;
+}
+
+function BesichtigungsProt(){
+  const [f,setF]=useState({objekt:"",datum:"",interessent:"",eindruck:"",fragen:"",naechste:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Besichtigungsprotokoll:\nObjekt: ${f.objekt} | Datum: ${f.datum} | Interessent: ${f.interessent}\nErster Eindruck: ${f.eindruck}\nFragen: ${f.fragen}\nNächste Schritte: ${f.naechste}`}],system:"Immobilienmakler. Professionelle Besichtigungsprotokolle.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="OBJEKT"/><input className="inp" value={f.objekt} onChange={e=>setF({...f,objekt:e.target.value})} placeholder="z.B. ETW Tulpenstraße 3"/></div>
+    <div><Lbl t="DATUM"/><input className="inp" type="date" value={f.datum} onChange={e=>setF({...f,datum:e.target.value})}/></div>
+    <div><Lbl t="INTERESSENT"/><input className="inp" value={f.interessent} onChange={e=>setF({...f,interessent:e.target.value})} placeholder="Name & Kontakt"/></div>
+    <div><Lbl t="ERSTER EINDRUCK"/><input className="inp" value={f.eindruck} onChange={e=>setF({...f,eindruck:e.target.value})} placeholder="z.B. sehr interessiert, viele Fotos"/></div>
+    <div><Lbl t="GESTELLTE FRAGEN"/><textarea className="ta" rows={2} value={f.fragen} onChange={e=>setF({...f,fragen:e.target.value})} placeholder="z.B. Verfügbarkeit, Mängel, Nebenkosten"/></div>
+    <div><Lbl t="NÄCHSTE SCHRITTE"/><input className="inp" value={f.naechste} onChange={e=>setF({...f,naechste:e.target.value})} placeholder="z.B. Rückmeldung bis Freitag"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.objekt}>{load?<><Spin s={13}/>Erstelle…</>:"📋 Protokoll erstellen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function UebergabeProt(){
+  const [f,setF]=useState({objekt:"",datum:"",kaeufer:"",zaehler:"",maengel:"",schluessel:""});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Übergabeprotokoll:\nObjekt: ${f.objekt} | Datum: ${f.datum} | Käufer: ${f.kaeufer}\nZählerstände: ${f.zaehler}\nMängel: ${f.maengel||"keine"}\nSchlüssel: ${f.schluessel}`}],system:"Immobilienmakler. Rechtssichere Übergabeprotokolle.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="OBJEKT"/><input className="inp" value={f.objekt} onChange={e=>setF({...f,objekt:e.target.value})} placeholder="Adresse"/></div>
+    <div><Lbl t="DATUM"/><input className="inp" type="date" value={f.datum} onChange={e=>setF({...f,datum:e.target.value})}/></div>
+    <div><Lbl t="KÄUFER"/><input className="inp" value={f.kaeufer} onChange={e=>setF({...f,kaeufer:e.target.value})} placeholder="Name"/></div>
+    <div><Lbl t="ZÄHLERSTÄNDE"/><input className="inp" value={f.zaehler} onChange={e=>setF({...f,zaehler:e.target.value})} placeholder="Strom 12345, Gas 67890, Wasser 111"/></div>
+    <div><Lbl t="MÄNGEL"/><textarea className="ta" rows={2} value={f.maengel} onChange={e=>setF({...f,maengel:e.target.value})} placeholder="Festgestellte Mängel (leer = keine)"/></div>
+    <div><Lbl t="SCHLÜSSEL"/><input className="inp" value={f.schluessel} onChange={e=>setF({...f,schluessel:e.target.value})} placeholder="z.B. 2x Haustür, 1x Briefkasten"/></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.objekt}>{load?<><Spin s={13}/>Erstelle…</>:"🔑 Protokoll erstellen"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function ChecklistenGen(){
+  const [typ,setTyp]=useState("Käufer-Erstgespräch");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const typen=["Käufer-Erstgespräch","Verkäufer-Erstgespräch","Besichtigungsvorbereitung","Kaufvertragsvorbereitung","Übergabe","Finanzierungsberatung","Objektaufnahme","Maklervertrag"];
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Vollständige Checkliste für "${typ}" – Immobilienmakler NRW. Alle wichtigen Punkte.`}],system:"Erfahrener Immobilienmakler. Vollständige praxiserprobte Checklisten.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>{typen.map(t=><button key={t} className={`chip${typ===t?" on":""}`} onClick={()=>setTyp(t)}>{t}</button>)}</div><button className="btn-primary" onClick={go} disabled={load}>{load?<><Spin s={13}/>Erstelle…</>:"📌 Checkliste generieren"}</button><Res text={res} loading={load}/></Card>;
+}
+
+// RECHT
+function RechtView(){
+  const [mode,setMode]=useState("faq");
+  return<div><SH title="Recht & Beratung" sub="Rechtliche Infos, Steuer und Finanzierung verständlich erklärt"/><Tabs modes={[{id:"faq",icon:"❓",label:"Kunden-FAQ"},{id:"vertrag",icon:"📄",label:"Vertragsklausel"},{id:"steuer",icon:"💰",label:"Steuerinfo"},{id:"finanzierung",icon:"🏦",label:"Finanzierung"}]} mode={mode} setMode={setMode}/>{mode==="faq"&&<FAQGen/>}{mode==="vertrag"&&<VertragGen/>}{mode==="steuer"&&<SteuerGen/>}{mode==="finanzierung"&&<FinanzGen/>}</div>;
+}
+
+function FAQGen(){
+  const [q,setQ]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const qs=["Was kostet ein Makler?","Wie lange dauert ein Hausverkauf?","Was ist der Verkehrswert?","Brauche ich einen Energieausweis?","Grunderwerbsteuer NRW?","Wann zahle ich Spekulationssteuer?","Was bedeutet Baulast?","Kann ich vom Kaufvertrag zurücktreten?"];
+  const go=async(fq)=>{const qt=fq||q;if(!qt.trim())return;setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Beantworte klar und verständlich (kein Fachjargon): "${qt}"\nFür NRW. Am Ende: empfohlener nächster Schritt.`}],system:"Immobilienmakler-Berater. Einfache, hilfreiche Erklärungen. Hinweis: rechtliche Details → Notar/Anwalt.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>{qs.map(q=><button key={q} className="chip" onClick={()=>go(q)} style={{fontSize:11}}>{q}</button>)}</div><div className="div"/>
+    <div style={{display:"flex",gap:8}}><input className="inp" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Eigene Kundenfrage…"/><button className="btn-primary" onClick={()=>go()} disabled={load||!q.trim()}>{load?<Spin s={13}/>:"→"}</button></div><Res text={res} loading={load}/></Card>;
+}
+
+function VertragGen(){
+  const [t,setT]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Erkläre diese Klausel verständlich für Käufer:\n\n"${t}"\n\nBedeutung, worauf achten, Risiken?`}],system:"Immobilienrechtsexperte. Klauseln verständlich erklären. Hinweis auf Notar bei wichtigen Fragen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><Lbl t="VERTRAGSKLAUSEL EINFÜGEN"/><textarea className="ta" rows={5} value={t} onChange={e=>setT(e.target.value} placeholder="Klausel aus Kaufvertrag oder Maklervertrag…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!t.trim()}>{load?<><Spin s={13}/>Erkläre…</>:"📄 Klausel erklären"}</button></div><Res text={res} loading={load}/></Card>;
+}
+
+function SteuerGen(){
+  const [s,setS]=useState("Kauf als Kapitalanleger");const [d,setD]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const sits=["Kauf als Eigennutzer","Kauf als Kapitalanleger","Verkauf nach Selbstnutzung","Spekulationssteuer vermeiden","Neubau KfW40 QNG","Degressive AfA nutzen","Sonder-AfA §7b","Grunderwerbsteuer NRW","Vermietung & Steuer"];
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Steuerinfo für: "${s}"\n${d?"Details: "+d:""}\nNRW/Deutschland. Konkrete Zahlen, Fristen. Hinweis: Steuerberater konsultieren.`}],system:"Immobilien-Steuerexperte Deutschland/NRW. Konkrete, verständliche Infos.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>{sits.map(x=><button key={x} className={`chip${s===x?" on":""}`} onClick={()=>setS(x)} style={{fontSize:11}}>{x}</button>)}</div><input className="inp" value={d} onChange={e=>setD(e.target.value)} placeholder="Details optional: z.B. Kaufpreis 300T€, Vermietung geplant" style={{marginBottom:12}}/><button className="btn-primary" onClick={go} disabled={load}>{load?<><Spin s={13}/>Erkläre…</>:"💰 Steuerinfo"}</button><Res text={res} loading={load}/></Card>;
+}
+
+function FinanzGen(){
+  const [f,setF]=useState({kp:"",ek:"",eink:"",typ:"Eigennutzer"});const [res,setRes]=useState("");const [load,setLoad]=useState(false);
+  const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Finanzierungsübersicht:\nKaufpreis: ${f.kp}€ | Eigenkapital: ${f.ek}€ | Nettoeinkommen: ${f.eink}€/Monat | Typ: ${f.typ}\nNebenkosten NRW, Finanzierungslücke, empfohlene Rate, Tilgungsdauer, KfW-Möglichkeiten. Verständlich.`}],system:"Immobilienfinanzierungs-Berater. Klare Übersichten für Käufer. Hinweis: Bankberater für Konditionen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
+  return<Card><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+    <div><Lbl t="KAUFPREIS (€)"/><input className="inp" value={f.kp} onChange={e=>setF({...f,kp:e.target.value})} placeholder="300000"/></div>
+    <div><Lbl t="EIGENKAPITAL (€)"/><input className="inp" value={f.ek} onChange={e=>setF({...f,ek:e.target.value})} placeholder="60000"/></div>
+    <div><Lbl t="NETTOEINKOMMEN/MTL."/><input className="inp" value={f.eink} onChange={e=>setF({...f,eink:e.target.value})} placeholder="4500"/></div>
+    <div><Lbl t="KÄUFERTYP"/><select className="sel" value={f.typ} onChange={e=>setF({...f,typ:e.target.value})}>{["Eigennutzer","Kapitalanleger","Erstkäufer","Familie"].map(t=><option key={t}>{t}</option>)}</select></div>
+  </div><button className="btn-primary" onClick={go} disabled={load||!f.kp||!f.ek}>{load?<><Spin s={13}/>Berechne…</>:"🏦 Finanzierungsübersicht"}</button><Res text={res} loading={load}/></Card>;
+}
+
+// SPARRING
+function SparringView(){
+  const [msgs,setMsgs]=useState([{role:"assistant",content:"Ich bin dein Sparringspartner für Zoeger Immobilien. Strategie, Preisverhandlungen, schwierige Kunden, neue Geschäftsfelder – leg los."}]);
+  const [inp,setInp]=useState("");const [load,setLoad]=useState(false);
+  const bot=useRef(null);
+  useEffect(()=>{bot.current?.scrollIntoView({behavior:"smooth"})},[msgs]);
+  const send=async()=>{
+    if(!inp.trim()||load)return;
+    const um={role:"user",content:inp.trim()};
+    const hist=[...msgs,um];
+    setMsgs([...hist,{role:"assistant",content:"",loading:true}]);
+    setInp("");setLoad(true);
+    try{let r="";await ai({messages:hist.map(m=>({role:m.role,content:m.content})),system:"Sparringspartner für Philipp Zoeger – Immobilienmakler Hamm NRW, Rotary, Kapitalanleger. Direkt, kritisch-konstruktiv, auf Augenhöhe. Deutsch. 3-5 Sätze.",onText:t=>{r=t}});setMsgs([...hist,{role:"assistant",content:r}])}
+    catch(e){setMsgs([...hist,{role:"assistant",content:"⚠️ "+e.message}])}
+    setLoad(false);
   };
-  const starters=["Ich überlege, in eine KfW40 QNG Neubauwohnung zu investieren…","Sollte ich mein Portfolio jetzt in REITs diversifizieren?","Ich plane einen Vortrag bei Rotary über Kapitalanlage…","Mein Steuerberater empfiehlt degressive AfA – was denkst du?"];
-  return (
-    <div style={{ display:"flex", flexDirection:"column", minHeight:400 }}>
-      {messages.length===1&&(
-        <div style={{ marginBottom:12 }}>
-          <div style={{ fontSize:11, color:"#5a6278", marginBottom:8, fontFamily:"'IBM Plex Mono',monospace", textTransform:"uppercase", letterSpacing:1 }}>Schnellstart</div>
-          {starters.map(s=><button key={s} className="starter-btn" onClick={()=>setInput(s)} style={{ display:"block", width:"100%", background:"#131720", border:"1px solid #1e2433", borderRadius:7, padding:"9px 13px", color:"#5a6278", fontSize:12, cursor:"pointer", textAlign:"left", marginBottom:6 }}>{s}</button>)}
-        </div>
-      )}
-      <div style={{ flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:12, paddingBottom:4, maxHeight:420 }}>
-        {messages.map((m,i)=>(
-          <div key={i} style={{ display:"flex", justifyContent:m.role==="user"?"flex-end":"flex-start", animation:"fadeUp 0.3s ease" }}>
-            {m.role==="assistant"&&<div style={{ width:28, height:28, borderRadius:"50%", background:"linear-gradient(135deg,#c9a84c,#7a5020)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, marginRight:8, flexShrink:0, marginTop:2 }}>⚔</div>}
-            <div style={{ maxWidth:"80%", padding:"11px 15px", borderRadius:m.role==="user"?"16px 16px 4px 16px":"4px 16px 16px 16px", background:m.role==="user"?"linear-gradient(135deg,#c9a84ccc,#7a5020cc)":"#131720", border:m.role==="user"?"none":"1px solid #1e2433", color:m.role==="user"?"#07090f":"#e8eaf0", fontSize:13, lineHeight:1.7, whiteSpace:"pre-wrap" }}>
-              {m.content||""}{m.loading&&<Spinner size={12}/>}
-            </div>
+  const starts=["Wir haben viele Objekte aber wenig Anfragen – was tun?","Kunde will 50T€ mehr als Marktwert – wie überzeugen?","Sollten wir in Richtung Neubauprojekte expandieren?","Wie differenzieren wir uns von anderen Maklern in Hamm?","Lohnt sich ein Social-Media-Manager?"];
+  return<div><SH title="Sparring" sub="Strategie, Entscheidungen, neue Ideen – kritisch-konstruktiv diskutiert"/>
+    <Card style={{display:"flex",flexDirection:"column",minHeight:520}}>
+      {msgs.length===1&&<div style={{marginBottom:16}}><div style={{fontSize:11,fontWeight:600,color:"#8a95a8",marginBottom:8,textTransform:"uppercase",letterSpacing:.5}}>Schnellstart</div>{starts.map(s=><button key={s} onClick={()=>setInp(s)} style={{display:"block",width:"100%",background:"#f7f8fa",border:"1px solid #e8edf3",borderRadius:7,padding:"9px 13px",color:"#64748b",fontSize:12,cursor:"pointer",textAlign:"left",marginBottom:6}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#b8943a";e.currentTarget.style.color="#1a1d2e"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8edf3";e.currentTarget.style.color="#64748b"}}>{s}</button>)}<div className="div"/></div>}
+      <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,maxHeight:400,paddingBottom:4}}>
+        {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+          {m.role==="assistant"&&<div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#b8943a,#8a6820)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,marginRight:8,flexShrink:0,marginTop:2}}>⚔</div>}
+          <div style={{maxWidth:"80%",padding:"11px 15px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"4px 16px 16px 16px",background:m.role==="user"?"linear-gradient(135deg,#b8943a,#8a6820)":"#f7f8fa",border:m.role==="user"?"none":"1px solid #e8edf3",color:m.role==="user"?"#fff":"#1a1d2e",fontSize:14,lineHeight:1.7,whiteSpace:"pre-wrap"}}>
+            {m.content||""}{m.loading&&<Spin s={12}/>}
           </div>
-        ))}
-        <div ref={bottomRef}/>
+        </div>)}
+        <div ref={bot}/>
       </div>
-      <div style={{ display:"flex", gap:8, paddingTop:12, borderTop:"1px solid #1e2433", marginTop:8 }}>
-        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Deine Idee, Frage oder These…" style={{ flex:1, background:"#131720", border:"1px solid #1e2433", borderRadius:8, padding:"10px 14px", color:"#e8eaf0", fontSize:13 }}/>
-        <Btn onClick={send} disabled={loading} style={{ flexShrink:0 }}>{loading?<Spinner size={13}/>:"→"}</Btn>
+      <div style={{display:"flex",gap:8,paddingTop:16,borderTop:"1px solid #f0f2f5",marginTop:8}}>
+        <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Deine Idee, Frage oder These…" style={{flex:1,background:"#f7f8fa",border:"1px solid #e8edf3",borderRadius:8,padding:"10px 14px",color:"#1a1d2e",fontSize:14}}/>
+        <button className="btn-primary" onClick={send} disabled={load} style={{flexShrink:0}}>{load?<Spin s={13}/>:"→"}</button>
       </div>
-    </div>
-  );
+    </Card>
+  </div>;
 }
 
-// ── MAIN ─────────────────────────────────────────────────────────────────────
-const TABS=[{id:"briefing",icon:"📰",label:"Briefing"},{id:"challenge",icon:"🎯",label:"Challenge"},{id:"tasks",icon:"✅",label:"Aufgaben"},{id:"writing",icon:"✍️",label:"Schreiben"},{id:"sparring",icon:"⚔",label:"Sparring"}];
+// APP
+const NAV=[{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
 
-function App() {
-  const [tab, setTab] = useState("briefing");
-  return (
-    <div style={{ minHeight:"100vh", background:"#07090f", fontFamily:"'IBM Plex Sans',sans-serif", color:"#e8eaf0" }}>
-      <div style={{ background:"#0e1117", borderBottom:"1px solid #1e2433", padding:"0 24px", position:"sticky", top:0, zIndex:100 }}>
-        <div style={{ maxWidth:840, margin:"0 auto", display:"flex", alignItems:"center", gap:16, height:54 }}>
-          <span style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#c9a84c", letterSpacing:"-0.5px" }}>Philipp</span>
-          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#5a6278" }}>· AGENT</span>
-          <div style={{ height:16, width:1, background:"#1e2433" }}/>
-          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#5a6278" }}>{TODAY}</span>
-          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:5 }}>
-            <div style={{ width:5, height:5, borderRadius:"50%", background:"#34c97a", animation:"pulse 2s infinite" }}/>
-            <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"#34c97a" }}>ONLINE</span>
-          </div>
-        </div>
+function App(){
+  const [page,setPage]=useState("objekte");
+  const [open,setOpen]=useState(true);
+  return<div style={{display:"flex",minHeight:"100vh",background:"#f4f5f7"}}>
+    <div style={{width:open?220:64,background:"#fff",borderRight:"1px solid #e8edf3",display:"flex",flexDirection:"column",transition:"width .2s",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"}}>
+      <div style={{padding:"20px 16px 16px",borderBottom:"1px solid #f0f2f5"}}>
+        {open?<div><div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,color:"#b8943a"}}>Zoeger</div><div style={{fontSize:11,color:"#8a95a8"}}>Immobilien · KI-Agent</div></div>
+        :<div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,color:"#b8943a",textAlign:"center"}}>Z</div>}
       </div>
-      <div style={{ background:"#0e1117", borderBottom:"1px solid #1e2433" }}>
-        <div style={{ maxWidth:840, margin:"0 auto", display:"flex", padding:"0 24px" }}>
-          {TABS.map(t=>(
-            <button key={t.id} className="tab-btn" onClick={()=>setTab(t.id)} style={{ padding:"12px 16px", background:"none", border:"none", cursor:"pointer", borderBottom:tab===t.id?"2px solid #c9a84c":"2px solid transparent", color:tab===t.id?"#c9a84c":"#5a6278", fontSize:13, fontWeight:tab===t.id?600:400, display:"flex", alignItems:"center", gap:6 }}>
-              <span>{t.icon}</span><span>{t.label}</span>
-            </button>
-          ))}
-        </div>
+      <div style={{flex:1,padding:"12px 8px"}}>
+        {NAV.map(n=><div key={n.id} className={`nav-item${page===n.id?" active":""}`} onClick={()=>setPage(n.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px",marginBottom:2,color:page===n.id?"#8a6820":"#4a5568"}}>
+          <span style={{fontSize:16,flexShrink:0}}>{n.icon}</span>
+          {open&&<span style={{fontSize:13,fontWeight:page===n.id?600:400,whiteSpace:"nowrap"}}>{n.label}</span>}
+        </div>)}
       </div>
-      <div style={{ maxWidth:840, margin:"0 auto", padding:"20px 24px 60px" }}>
-        {tab==="briefing"&&<BriefingTab/>}
-        {tab==="challenge"&&<ChallengeTab/>}
-        {tab==="tasks"&&<TasksTab/>}
-        {tab==="writing"&&<WritingTab/>}
-        {tab==="sparring"&&<SparringTab/>}
+      <div style={{padding:"12px 8px",borderTop:"1px solid #f0f2f5"}}>
+        {open&&<div style={{fontSize:10,color:"#b0b8c8",padding:"4px 10px",lineHeight:1.4}}>{TODAY}</div>}
       </div>
     </div>
-  );
+    <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+      <div style={{background:"#fff",borderBottom:"1px solid #e8edf3",padding:"0 24px",height:52,display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:50}}>
+        <button onClick={()=>setOpen(!open)} style={{background:"none",border:"none",cursor:"pointer",color:"#8a95a8",fontSize:18,borderRadius:6}}>☰</button>
+        <span style={{fontSize:14,fontWeight:600}}>{NAV.find(n=>n.id===page)?.label}</span>
+      </div>
+      <div style={{flex:1,padding:"28px 28px 60px",overflowY:"auto"}}>
+        {page==="objekte"&&<ObjekteView/>}
+        {page==="anfragen"&&<AnfragenView/>}
+        {page==="markt"&&<MarktView/>}
+        {page==="kommunikation"&&<KommunikationView/>}
+        {page==="buero"&&<BueroView/>}
+        {page==="recht"&&<RechtView/>}
+        {page==="sparring"&&<SparringView/>}
+      </div>
+    </div>
+  </div>;
 }
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
