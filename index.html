@@ -126,7 +126,7 @@ function AnfragenView(){
 function KaufCheck(){
   const [a,setA]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
   const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Analysiere diese Immobilienanfrage:\n"${a}"\n\n1) Kaufbereitschaft (HOCH/MITTEL/NIEDRIG) mit Begründung\n2) Positive/negative Signale\n3) Empfohlene nächste Schritte\n4) Mögliche Einwände`}],system:"Erfahrener Immobilienmakler. Kaufanfragen präzise analysieren.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
-  return<Card><Lbl t="ANFRAGE-TEXT"/><textarea className="ta" rows={5} value={a} onChange={e=>setA(e.target.value} placeholder="Anfrage aus E-Mail, IS24, Immowelt etc. einfügen…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!a.trim()}>{load?<><Spin s={13}/>Analysiere…</>:"🎯 Kaufbereitschaft prüfen"}</button></div><Res text={res} loading={load}/></Card>;
+  return<Card><Lbl t="ANFRAGE-TEXT"/><textarea className="ta" rows={5} value={a} onChange={e=>setA(e.target.value)} placeholder="Anfrage aus E-Mail, IS24, Immowelt etc. einfügen…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!a.trim()}>{load?<><Spin s={13}/>Analysiere…</>:"🎯 Kaufbereitschaft prüfen"}</button></div><Res text={res} loading={load}/></Card>;
 }
 
 function AntwortGen(){
@@ -323,7 +323,7 @@ function FAQGen(){
 function VertragGen(){
   const [t,setT]=useState("");const [res,setRes]=useState("");const [load,setLoad]=useState(false);
   const go=async()=>{setLoad(true);setRes("");try{await ai({messages:[{role:"user",content:`Erkläre diese Klausel verständlich für Käufer:\n\n"${t}"\n\nBedeutung, worauf achten, Risiken?`}],system:"Immobilienrechtsexperte. Klauseln verständlich erklären. Hinweis auf Notar bei wichtigen Fragen.",onText:t=>setRes(t)})}catch(e){setRes("⚠️ "+e.message)}setLoad(false)};
-  return<Card><Lbl t="VERTRAGSKLAUSEL EINFÜGEN"/><textarea className="ta" rows={5} value={t} onChange={e=>setT(e.target.value} placeholder="Klausel aus Kaufvertrag oder Maklervertrag…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!t.trim()}>{load?<><Spin s={13}/>Erkläre…</>:"📄 Klausel erklären"}</button></div><Res text={res} loading={load}/></Card>;
+  return<Card><Lbl t="VERTRAGSKLAUSEL EINFÜGEN"/><textarea className="ta" rows={5} value={t} onChange={e=>setT(e.target.value)} placeholder="Klausel aus Kaufvertrag oder Maklervertrag…"/><div style={{marginTop:12}}><button className="btn-primary" onClick={go} disabled={load||!t.trim()}>{load?<><Spin s={13}/>Erkläre…</>:"📄 Klausel erklären"}</button></div><Res text={res} loading={load}/></Card>;
 }
 
 function SteuerGen(){
@@ -423,4 +423,4 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
-</html>
+</html
