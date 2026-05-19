@@ -347,3 +347,30 @@ app.listen(PORT, () => {
   console.log("Zoeger Agent laeuft auf Port " + PORT);
   console.log("Briefing: 07:00 Uhr Europe/Berlin → " + EMAIL_TO);
 });
+
+// LISTINGS ENDPUNKT (fuer Dashboard-Tab, mit 1h Cache)
+let listingsCache = { data: null, time: null };
+
+app.all("/api/listings", async (req, res) => {
+  try {
+    const now = Date.now();
+    const cacheAge = listingsCache.time ? (now - listingsCache.time) / 1000 / 60 : 999;
+    if (listingsCache.data && cacheAge < 60) {
+      console.log("Cache: " + Math.round(cacheAge) + " Min alt");
+      return res.json({ success: true, cached: true, ...listingsCache.data });
+    }
+    const seenData = loadSeenListings();
+    const todayListings = await fetchListings();
+    const newListings = findNewListings(todayListings, seenData);
+    const result = {
+      listings: todayListings,
+      newIds: new Set(newListings.map(l => l.id || l.url)),
+      total: todayListings.length,
+      newCount: newListings.length
+    };
+    listingsCache = { data: { ...result, newIds: [...result.newIds] }, time: now };
+    res.json({ success: true, cached: false, ...result, newIds: [...result.newIds] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
