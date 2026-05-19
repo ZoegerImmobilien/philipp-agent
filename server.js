@@ -180,7 +180,7 @@ cron.schedule("0 7 * * *", async () => {
 
 // ── MANUELLER TEST-ENDPUNKT ──────────────────────────────────────────────────
 // Aufruf: POST /api/send-briefing (zum Testen ohne auf 7 Uhr zu warten)
-app.post("/api/send-briefing", async (req, res) => {
+app.all("/api/send-briefing", async (req, res) => {
   try {
     console.log("📧 Manueller Versand gestartet...");
     const listings = await searchNewListings();
