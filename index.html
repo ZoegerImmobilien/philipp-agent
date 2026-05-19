@@ -381,8 +381,155 @@ function SparringView(){
   </div>;
 }
 
+
+// INSERATE VIEW
+function InserateView(){
+  const [state,setState]=useState("idle");
+  const [data,setData]=useState(null);
+  const [filter,setFilter]=useState("alle");
+  const [cached,setCached]=useState(false);
+
+  const load=async(force)=>{
+    setState("loading");
+    try{
+      const r=await fetch(force?"/api/listings?refresh=1":"/api/listings");
+      const d=await r.json();
+      if(!d.success)throw new Error(d.error);
+      setData(d); setCached(d.cached||false); setState("done");
+    }catch(e){setState("error:"+e.message);}
+  };
+
+  const portale=[
+    {id:"IS24",label:"ImmobilienScout24",color:"#003da5",light:"#e8eef9"},
+    {id:"Immowelt",label:"Immowelt",color:"#e8000d",light:"#fde8e9"},
+    {id:"Kleinanzeigen",label:"Kleinanzeigen",color:"#d48f00",light:"#fef6e0"},
+  ];
+  const katLabels={EFH:"Einfamilienhaus",ETW:"Eigentumswohnung",MFH:"Mehrfamilienhaus",Anlage:"Anlageobjekt",Gewerbe:"Gewerbe"};
+  const katIcons={EFH:"🏠",ETW:"🏢",MFH:"🏘️",Anlage:"📈",Gewerbe:"🏭"};
+  const filterOpts=["alle","EFH","ETW","MFH","Anlage","Gewerbe"];
+  const filtered=(l)=>filter==="alle"?l:l.filter(x=>x.kategorie===filter);
+  const isNew=(l)=>data&&Array.isArray(data.newIds)&&data.newIds.includes(l.id||l.url);
+
+  return(
+    <div>
+      <SH title="Inserate Hamm" sub="Aktuelle Angebote von ImmobilienScout24, Immowelt und Kleinanzeigen"/>
+
+      {state==="idle"&&(
+        <Card s={{textAlign:"center",padding:"48px 24px"}}>
+          <div style={{fontSize:40,marginBottom:16}}>🏘️</div>
+          <div style={{fontSize:15,fontWeight:600,color:"#1a1d2e",marginBottom:8}}>Aktuelle Inserate laden</div>
+          <div style={{fontSize:13,color:"#8a95a8",marginBottom:24}}>Sucht auf IS24, Immowelt und Kleinanzeigen in Hamm</div>
+          <button className="btn-primary" onClick={()=>load(false)} style={{padding:"12px 32px"}}>🔍 Inserate abrufen</button>
+        </Card>
+      )}
+
+      {state==="loading"&&(
+        <Card s={{textAlign:"center",padding:"48px 24px"}}>
+          <Spin s={32}/>
+          <div style={{fontSize:14,color:"#8a95a8",marginTop:16}}>Suche auf IS24, Immowelt und Kleinanzeigen…</div>
+          <div style={{fontSize:12,color:"#b0b8c8",marginTop:6}}>Kann 30–60 Sekunden dauern</div>
+        </Card>
+      )}
+
+      {state.startsWith("error:")&&(
+        <Card s={{textAlign:"center",padding:"40px 24px"}}>
+          <div style={{fontSize:32,marginBottom:12}}>⚠️</div>
+          <div style={{fontSize:14,color:"#dc2626",marginBottom:16}}>{state.replace("error:","")}</div>
+          <button className="btn-primary" onClick={()=>load(false)}>Erneut versuchen</button>
+        </Card>
+      )}
+
+      {state==="done"&&data&&(
+        <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+          {/* Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+            {[
+              {label:"Gesamt",val:data.total,icon:"📋"},
+              {label:"Davon neu",val:data.newCount,icon:"✨"},
+              {label:"Portale",val:3,icon:"🔍"},
+              {label:"Stand",val:cached?"Cache":"Aktuell",icon:"🕐"},
+            ].map(s=>(
+              <Card key={s.label} s={{padding:"14px",textAlign:"center"}}>
+                <div style={{fontSize:18,marginBottom:4}}>{s.icon}</div>
+                <div style={{fontSize:typeof s.val==="number"?22:13,fontWeight:700,color:"#b8943a"}}>{s.val}</div>
+                <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.label}</div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Filter + Reload */}
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:11,fontWeight:600,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Filter:</span>
+            {filterOpts.map(f=>(
+              <button key={f} className={"chip"+(filter===f?" on":"")} onClick={()=>setFilter(f)} style={{fontSize:11}}>
+                {f==="alle"?"Alle":(katIcons[f]+" "+katLabels[f])}
+              </button>
+            ))}
+            <button onClick={()=>load(true)} style={{marginLeft:"auto",background:"none",border:"1px solid #e8edf3",borderRadius:8,padding:"6px 14px",fontSize:11,color:"#8a95a8",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#b8943a";e.currentTarget.style.color="#b8943a"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8edf3";e.currentTarget.style.color="#8a95a8"}}>🔄 Neu laden</button>
+          </div>
+
+          {/* Portal Tabellen */}
+          {portale.map(portal=>{
+            const items=filtered(data.listings||[]).filter(l=>l.quelle===portal.id);
+            if(!items.length)return null;
+            return(
+              <div key={portal.id} style={{borderRadius:12,overflow:"hidden",border:"1px solid #e8edf3",boxShadow:"0 2px 12px rgba(0,0,0,0.05)"}}>
+                {/* Portal Header */}
+                <div style={{background:portal.color,padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{color:"#fff",fontWeight:700,fontSize:15,letterSpacing:"-.3px"}}>{portal.label}</span>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <span style={{background:"rgba(255,255,255,0.15)",color:"#fff",fontSize:11,padding:"3px 10px",borderRadius:10}}>
+                      {items.filter(l=>isNew(l)).length} neu
+                    </span>
+                    <span style={{background:"rgba(255,255,255,0.3)",color:"#fff",fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:10}}>
+                      {items.length} gesamt
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tabellenkopf */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 130px 110px 90px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid "+portal.color}}>
+                  {["Objekt & Lage","Preis","Größe","Link"].map(h=>(
+                    <div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>
+                  ))}
+                </div>
+
+                {/* Zeilen */}
+                {items.map((l,i)=>(
+                  <div key={l.id||i} style={{display:"grid",gridTemplateColumns:"1fr 130px 110px 90px",padding:"12px 16px",background:i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",alignItems:"center",transition:"background .15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="#fdf8ef"}
+                    onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"#f9fafb"}>
+                    <div>
+                      <div style={{marginBottom:5,display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
+                        {isNew(l)&&<span style={{background:portal.light,color:portal.color,fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8,textTransform:"uppercase",letterSpacing:.5}}>✨ NEU</span>}
+                        <span style={{background:"#f0f2f5",color:"#64748b",fontSize:10,padding:"1px 7px",borderRadius:8}}>{katIcons[l.kategorie]} {katLabels[l.kategorie]||l.kategorie}</span>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e",lineHeight:1.4}}>{l.titel}</div>
+                      <div style={{fontSize:11,color:"#8a95a8",marginTop:3}}>📍 {l.lage||"Hamm"}</div>
+                    </div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#1a1d2e"}}>{l.preis}</div>
+                    <div style={{fontSize:12,color:"#64748b"}}>{l.groesse||"–"}</div>
+                    <div>
+                      <a href={l.url} target="_blank" rel="noreferrer"
+                        style={{display:"inline-block",background:portal.color,color:"#fff",padding:"6px 12px",borderRadius:6,textDecoration:"none",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+                        Öffnen →
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
 // APP
-const NAV=[{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
+const NAV=[{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
 
 function App(){
   const [page,setPage]=useState("objekte");
@@ -416,6 +563,7 @@ function App(){
         {page==="buero"&&<BueroView/>}
         {page==="recht"&&<RechtView/>}
         {page==="sparring"&&<SparringView/>}
+        {page==="inserate"&&<InserateView/>}
       </div>
     </div>
   </div>;
@@ -423,4 +571,4 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
-</html
+</html>
