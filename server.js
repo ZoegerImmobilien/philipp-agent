@@ -374,3 +374,82 @@ app.all("/api/listings", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ZOEGER BACKEND PROXY
+// Frontend ruft /api/backend/realestates → proxied zu zoeger.de/api/v4/realestates
+// API-Key bleibt sicher auf dem Server
+const ZOEGER_API_KEY = process.env.ZOEGER_API_KEY;
+const ZOEGER_BASE = "https://zoeger.de/api/v4";
+
+app.get("/api/backend/:endpoint(*)", async (req, res) => {
+  if (!ZOEGER_API_KEY) return res.status(500).json({ error: "ZOEGER_API_KEY nicht gesetzt" });
+  try {
+    const query = new URLSearchParams(req.query).toString();
+    const url = `${ZOEGER_BASE}/${req.params.endpoint}${query ? "?" + query : ""}`;
+    console.log("Backend proxy:", url);
+    const response = await fetch(url, {
+      headers: { "Authorization": `Bearer ${ZOEGER_API_KEY}`, "Content-Type": "application/json" }
+    });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// KI-ANRUF-ANALYSE: lädt Kontakte + offene Anfragen und lässt Claude priorisieren
+app.get("/api/anruf-analyse", async (req, res) => {
+  if (!ZOEGER_API_KEY) return res.status(500).json({ error: "ZOEGER_API_KEY nicht gesetzt" });
+  if (!API_KEY) return res.status(500).json({ error: "ANTHROPIC_API_KEY nicht gesetzt" });
+  try {
+    // Kontakte und offene Anfragen parallel laden
+    const [contactsRes, inquiriesRes] = await Promise.all([
+      fetch(`${ZOEGER_BASE}/contacts`, { headers: { "Authorization": `Bearer ${ZOEGER_API_KEY}` } }),
+      fetch(`${ZOEGER_BASE}/inquiries?status=offen`, { headers: { "Authorization": `Bearer ${ZOEGER_API_KEY}` } }),
+    ]);
+    const contacts = await contactsRes.json();
+    const inquiries = await inquiriesRes.json();
+
+    const prompt = `Du bist KI-Assistent für Zoeger Immobilien in Hamm. Analysiere folgende Daten und erstelle eine priorisierte Anruf-Liste für heute.
+
+KONTAKTE (${contacts.count} gesamt):
+${JSON.stringify(contacts.data?.slice(0, 50), null, 1)}
+
+OFFENE ANFRAGEN (${inquiries.count} gesamt):
+${JSON.stringify(inquiries.data?.slice(0, 50), null, 1)}
+
+Aufgabe:
+1. Erstelle eine priorisierte Anruf-Liste (max. 10 Personen) für heute
+2. Bewerte jeden Eintrag: HOCH / MITTEL / NIEDRIG
+3. Erkläre kurz WARUM diese Person heute angerufen werden sollte
+4. Achte besonders auf:
+   - Personen mit mehreren Anfragen (inquiry_count > 1) → hohes Kaufinteresse
+   - Offene Anfragen die älter als 3 Tage sind
+   - Personen die lange keinen Kontakt hatten (last_inquiry_at)
+   - Mehrfachanfragen auf verschiedene Objekte
+
+Format pro Person:
+**[PRIORITÄT] Name** – Telefon/Mobil
+Grund: [kurze Begründung]
+Objekt(e): [Objekttitel]`;
+
+    let analysis = "";
+    await (async () => {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1500,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      const d = await r.json();
+      analysis = d.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+    })();
+
+    res.json({ success: true, analysis, contactCount: contacts.count, openCount: inquiries.count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
