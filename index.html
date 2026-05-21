@@ -382,6 +382,329 @@ function SparringView(){
 }
 
 
+
+// MEIN BESTAND VIEW
+function MeinBestandView(){
+  const [mode,setMode]=useState("objekte");
+  const modes=[
+    {id:"objekte",icon:"🏠",label:"Objekte"},
+    {id:"anfragen",icon:"📩",label:"Offene Anfragen"},
+    {id:"anrufe",icon:"📞",label:"Anruf-Liste"},
+    {id:"interessenten",icon:"👥",label:"Interessenten"},
+  ];
+  return(
+    <div>
+      <SH title="Mein Bestand" sub="Live-Daten aus dem Zoeger Immobilien Backend"/>
+      <Tabs modes={modes} mode={mode} setMode={setMode}/>
+      {mode==="objekte"&&<ObjekteBackend/>}
+      {mode==="anfragen"&&<AnfragenBackend/>}
+      {mode==="anrufe"&&<AnrufListe/>}
+      {mode==="interessenten"&&<InteressentenBackend/>}
+    </div>
+  );
+}
+
+// Helper: Backend-Daten laden
+async function backendFetch(path, params){
+  const q=params?("?"+new URLSearchParams(params).toString()):"";
+  const r=await fetch("/api/backend/"+path+q);
+  const d=await r.json();
+  if(!d.success)throw new Error(d.errorMsg||d.error||"Fehler");
+  return d;
+}
+
+// Status Badge
+function StatusBadge({status}){
+  const cfg={
+    aktiv:{bg:"#dcfce7",c:"#166534",label:"Aktiv"},
+    reserviert:{bg:"#fef9c3",c:"#854d0e",label:"Reserviert"},
+    verkauft:{bg:"#f1f5f9",c:"#475569",label:"Verkauft"},
+    vermietet:{bg:"#f1f5f9",c:"#475569",label:"Vermietet"},
+    inaktiv:{bg:"#fee2e2",c:"#991b1b",label:"Inaktiv"},
+    offen:{bg:"#dbeafe",c:"#1d4ed8",label:"Offen"},
+    beantwortet:{bg:"#dcfce7",c:"#166534",label:"Beantwortet"},
+    besichtigung:{bg:"#fef9c3",c:"#854d0e",label:"Besichtigung"},
+    abgesagt:{bg:"#fee2e2",c:"#991b1b",label:"Abgesagt"},
+    gekauft:{bg:"#d1fae5",c:"#065f46",label:"Gekauft"},
+  };
+  const s=cfg[status]||{bg:"#f1f5f9",c:"#475569",label:status};
+  return<span style={{background:s.bg,color:s.c,fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10,letterSpacing:.3}}>{s.label}</span>;
+}
+
+function daysSince(iso){
+  if(!iso)return null;
+  const d=Math.floor((Date.now()-new Date(iso))/86400000);
+  return d;
+}
+
+function DaysBadge({iso,label}){
+  if(!iso)return<span style={{color:"#b0b8c8",fontSize:11}}>–</span>;
+  const d=daysSince(iso);
+  const color=d>14?"#dc2626":d>7?"#d48f00":"#16a34a";
+  return<span style={{color,fontSize:11,fontWeight:600}}>{d}d ago</span>;
+}
+
+function fmt(n){
+  if(!n)return"–";
+  return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
+}
+
+// OBJEKTE
+function ObjekteBackend(){
+  const [data,setData]=useState(null);const [load,setLoad]=useState(false);const [filter,setFilter]=useState("alle");
+  const statusOpts=["alle","aktiv","reserviert","verkauft","inaktiv"];
+  const typeIcons={EFH:"🏠",ETW:"🏢",MFH:"🏘️",DHH:"🏡",RH:"🏚️",Grundstück:"🌿",Büro:"💼",Praxis:"🏥"};
+
+  useEffect(()=>{fetchData()},[]);
+  const fetchData=async()=>{
+    setLoad(true);
+    try{const d=await backendFetch("realestates");setData(d);}
+    catch(e){setData({error:e.message});}
+    setLoad(false);
+  };
+
+  if(load)return<Card s={{textAlign:"center",padding:"48px"}}><Spin s={28}/><div style={{color:"#8a95a8",marginTop:12,fontSize:13}}>Lade Objekte…</div></Card>;
+  if(!data)return null;
+  if(data.error)return<Card s={{textAlign:"center",padding:"40px"}}><div style={{color:"#dc2626"}}>⚠️ {data.error}</div><button className="btn-primary" onClick={fetchData} style={{marginTop:12}}>Erneut versuchen</button></Card>;
+
+  const items=(data.data||[]).filter(o=>filter==="alle"||o.status===filter);
+  const aktiv=(data.data||[]).filter(o=>o.status==="aktiv").length;
+  const reserviert=(data.data||[]).filter(o=>o.status==="reserviert").length;
+  const totalAnfragen=(data.data||[]).reduce((s,o)=>s+(o.inquiries_count||0),0);
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+        {[{l:"Gesamt",v:data.count||0,i:"📋"},{l:"Aktiv",v:aktiv,i:"✅"},{l:"Reserviert",v:reserviert,i:"⏳"},{l:"Anfragen",v:totalAnfragen,i:"📩"}].map(s=>(
+          <Card key={s.l} s={{padding:"14px",textAlign:"center"}}>
+            <div style={{fontSize:18,marginBottom:4}}>{s.i}</div>
+            <div style={{fontSize:22,fontWeight:700,color:"#b8943a"}}>{s.v}</div>
+            <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.l}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filter */}
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{fontSize:11,fontWeight:600,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Status:</span>
+        {statusOpts.map(s=><button key={s} className={"chip"+(filter===s?" on":"")} onClick={()=>setFilter(s)} style={{fontSize:11,textTransform:"capitalize"}}>{s==="alle"?"Alle":s}</button>)}
+        <button onClick={fetchData} style={{marginLeft:"auto",background:"none",border:"1px solid #e8edf3",borderRadius:8,padding:"5px 12px",fontSize:11,color:"#8a95a8",cursor:"pointer"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#b8943a"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8edf3"}}>🔄 Aktualisieren</button>
+      </div>
+
+      {/* Tabelle */}
+      <div style={{borderRadius:12,overflow:"hidden",border:"1px solid #e8edf3"}}>
+        <div style={{display:"grid",gridTemplateColumns:"60px 1fr 120px 100px 80px 80px 80px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid #b8943a"}}>
+          {["Nr","Objekt & Adresse","Preis","Typ","Status","Anfragen","Letzter"].map(h=><div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>)}
+        </div>
+        {items.map((o,i)=>(
+          <div key={o.id} style={{display:"grid",gridTemplateColumns:"60px 1fr 120px 100px 80px 80px 80px",padding:"12px 16px",background:i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",alignItems:"center",transition:"background .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="#fdf8ef"}
+            onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"#f9fafb"}>
+            <div style={{fontSize:10,color:"#8a95a8",fontFamily:"monospace"}}>{o.objektnummer}</div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e",lineHeight:1.3}}>{o.titel}</div>
+              <div style={{fontSize:11,color:"#8a95a8",marginTop:2}}>📍 {o.adresse}</div>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:"#1a1d2e"}}>{fmt(o.kaufpreis||o.mietpreis_kalt)}</div>
+            <div style={{fontSize:12,color:"#64748b"}}>{typeIcons[o.object_type]||"🏠"} {o.object_type}</div>
+            <div><StatusBadge status={o.status}/></div>
+            <div style={{fontSize:13,fontWeight:700,color:o.inquiries_count>10?"#dc2626":o.inquiries_count>3?"#d48f00":"#1a1d2e"}}>{o.inquiries_count||0}</div>
+            <div><DaysBadge iso={o.last_contact_at} label="Letzter"/></div>
+          </div>
+        ))}
+        {items.length===0&&<div style={{padding:"32px",textAlign:"center",color:"#8a95a8",fontSize:13}}>Keine Objekte gefunden</div>}
+      </div>
+    </div>
+  );
+}
+
+// ANFRAGEN
+function AnfragenBackend(){
+  const [data,setData]=useState(null);const [load,setLoad]=useState(false);const [filter,setFilter]=useState("offen");
+  const statusOpts=["offen","beantwortet","besichtigung","abgesagt","alle"];
+
+  const fetchData=async()=>{
+    setLoad(true);
+    try{
+      const params=filter==="alle"?{}:{status:filter};
+      const d=await backendFetch("inquiries",params);
+      setData(d);
+    }catch(e){setData({error:e.message});}
+    setLoad(false);
+  };
+
+  useEffect(()=>{fetchData()},[filter]);
+
+  if(load)return<Card s={{textAlign:"center",padding:"48px"}}><Spin s={28}/><div style={{color:"#8a95a8",marginTop:12,fontSize:13}}>Lade Anfragen…</div></Card>;
+  if(!data)return null;
+  if(data.error)return<Card s={{textAlign:"center",padding:"40px"}}><div style={{color:"#dc2626"}}>⚠️ {data.error}</div></Card>;
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+        <span style={{fontSize:11,fontWeight:600,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Status:</span>
+        {statusOpts.map(s=><button key={s} className={"chip"+(filter===s?" on":"")} onClick={()=>setFilter(s)} style={{fontSize:11,textTransform:"capitalize"}}>{s==="alle"?"Alle":s}</button>)}
+        <span style={{marginLeft:"auto",fontSize:12,color:"#8a95a8"}}>{data.count} Anfragen</span>
+      </div>
+
+      <div style={{borderRadius:12,overflow:"hidden",border:"1px solid #e8edf3"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 120px 90px 80px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid #b8943a"}}>
+          {["Interessent","Objekt","Datum","Status","Alter"].map(h=><div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>)}
+        </div>
+        {(data.data||[]).map((a,i)=>{
+          const days=daysSince(a.date_created);
+          const urgent=a.status==="offen"&&days>3;
+          return(
+            <div key={a.id} style={{display:"grid",gridTemplateColumns:"1fr 1fr 120px 90px 80px",padding:"12px 16px",background:urgent?"#fff8f0":i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",borderLeft:urgent?"3px solid #dc2626":"3px solid transparent",alignItems:"center"}}>
+              <div>
+                {urgent&&<span style={{background:"#fee2e2",color:"#dc2626",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8,marginRight:5}}>DRINGEND</span>}
+                <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{a.name}</div>
+                <div style={{fontSize:11,color:"#8a95a8"}}>{a.phone||a.mobile||a.email||"–"}</div>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:500,color:"#1a1d2e"}}>{a.object?.titel||"–"}</div>
+                <div style={{fontSize:10,color:"#8a95a8"}}>{a.object?.objektnummer}</div>
+              </div>
+              <div style={{fontSize:11,color:"#64748b"}}>{a.date_created?new Date(a.date_created).toLocaleDateString("de-DE"):"–"}</div>
+              <div><StatusBadge status={a.status}/></div>
+              <div style={{fontSize:12,fontWeight:600,color:days>7?"#dc2626":days>3?"#d48f00":"#64748b"}}>{days}d</div>
+            </div>
+          );
+        })}
+        {(data.data||[]).length===0&&<div style={{padding:"32px",textAlign:"center",color:"#8a95a8",fontSize:13}}>Keine Anfragen gefunden</div>}
+      </div>
+    </div>
+  );
+}
+
+// ANRUF-LISTE
+function AnrufListe(){
+  const [state,setState]=useState("idle");const [result,setResult]=useState(null);
+
+  const analyse=async()=>{
+    setState("loading");
+    try{
+      const r=await fetch("/api/anruf-analyse");
+      const d=await r.json();
+      if(!d.success)throw new Error(d.error);
+      setResult(d); setState("done");
+    }catch(e){setState("error:"+e.message);}
+  };
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {state==="idle"&&(
+        <Card s={{textAlign:"center",padding:"48px 24px"}}>
+          <div style={{fontSize:40,marginBottom:16}}>📞</div>
+          <div style={{fontSize:15,fontWeight:600,color:"#1a1d2e",marginBottom:8}}>KI-Anruf-Analyse</div>
+          <div style={{fontSize:13,color:"#8a95a8",marginBottom:8}}>Analysiert alle Kontakte und offenen Anfragen</div>
+          <div style={{fontSize:12,color:"#b0b8c8",marginBottom:24}}>Erkennt Mehrfachanfrager, dringende Fälle und priorisiert deinen Tages-Anrufplan</div>
+          <button className="btn-primary" onClick={analyse} style={{padding:"12px 32px"}}>📞 Anruf-Liste erstellen</button>
+        </Card>
+      )}
+      {state==="loading"&&(
+        <Card s={{textAlign:"center",padding:"48px"}}>
+          <Spin s={28}/>
+          <div style={{color:"#8a95a8",marginTop:12,fontSize:13}}>Analysiere Kontakte und Anfragen…</div>
+          <div style={{color:"#b0b8c8",marginTop:6,fontSize:11}}>Dauert ca. 15–30 Sekunden</div>
+        </Card>
+      )}
+      {state.startsWith("error:")&&(
+        <Card s={{textAlign:"center",padding:"40px"}}>
+          <div style={{fontSize:32,marginBottom:12}}>⚠️</div>
+          <div style={{fontSize:14,color:"#dc2626",marginBottom:16}}>{state.replace("error:","")}</div>
+          <button className="btn-primary" onClick={analyse}>Erneut versuchen</button>
+        </Card>
+      )}
+      {state==="done"&&result&&(
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <Card s={{padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:18,marginBottom:4}}>👥</div>
+              <div style={{fontSize:22,fontWeight:700,color:"#b8943a"}}>{result.contactCount}</div>
+              <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Kontakte gesamt</div>
+            </Card>
+            <Card s={{padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:18,marginBottom:4}}>📬</div>
+              <div style={{fontSize:22,fontWeight:700,color:"#dc2626"}}>{result.openCount}</div>
+              <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5}}>Offene Anfragen</div>
+            </Card>
+          </div>
+          <Card>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <span style={{fontWeight:700,fontSize:14,color:"#1a1d2e"}}>📞 Deine Anruf-Liste für heute</span>
+              <button className="btn-sec" onClick={()=>setState("idle")} style={{fontSize:11,padding:"4px 12px"}}>Neu analysieren</button>
+            </div>
+            <div style={{fontSize:14,lineHeight:1.8,whiteSpace:"pre-wrap",color:"#1a1d2e"}}>{result.analysis}</div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// INTERESSENTEN
+function InteressentenBackend(){
+  const [data,setData]=useState(null);const [load,setLoad]=useState(false);const [search,setSearch]=useState("");
+
+  useEffect(()=>{
+    (async()=>{
+      setLoad(true);
+      try{const d=await backendFetch("contacts");setData(d);}
+      catch(e){setData({error:e.message});}
+      setLoad(false);
+    })();
+  },[]);
+
+  if(load)return<Card s={{textAlign:"center",padding:"48px"}}><Spin s={28}/><div style={{color:"#8a95a8",marginTop:12,fontSize:13}}>Lade Interessenten…</div></Card>;
+  if(!data)return null;
+  if(data.error)return<Card s={{textAlign:"center",padding:"40px"}}><div style={{color:"#dc2626"}}>⚠️ {data.error}</div></Card>;
+
+  const items=(data.data||[]).filter(c=>!search||c.name?.toLowerCase().includes(search.toLowerCase())||c.email?.toLowerCase().includes(search.toLowerCase()));
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <input className="inp" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche nach Name oder E-Mail…" style={{maxWidth:320}}/>
+        <span style={{fontSize:12,color:"#8a95a8",marginLeft:"auto"}}>{items.length} von {data.count} Interessenten</span>
+      </div>
+
+      <div style={{borderRadius:12,overflow:"hidden",border:"1px solid #e8edf3"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 140px 100px 90px 90px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid #b8943a"}}>
+          {["Name & Kontakt","Erstkontakt","Letzter","Anfragen",""].map(h=><div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>)}
+        </div>
+        {items.map((c,i)=>(
+          <div key={c.contact_id} style={{display:"grid",gridTemplateColumns:"1fr 140px 100px 90px 90px",padding:"12px 16px",background:i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",borderLeft:c.inquiry_count>2?"3px solid #b8943a":"3px solid transparent",alignItems:"center",transition:"background .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="#fdf8ef"}
+            onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"#f9fafb"}>
+            <div>
+              {c.inquiry_count>2&&<span style={{background:"rgba(184,148,58,.12)",color:"#b8943a",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8,marginRight:5}}>MEHRFACH</span>}
+              <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{c.name}</div>
+              <div style={{fontSize:11,color:"#8a95a8"}}>{c.phone||c.mobile||c.email||"–"}</div>
+            </div>
+            <div style={{fontSize:11,color:"#64748b"}}>{c.first_inquiry_at?new Date(c.first_inquiry_at).toLocaleDateString("de-DE"):"–"}</div>
+            <div><DaysBadge iso={c.last_inquiry_at}/></div>
+            <div style={{fontSize:14,fontWeight:700,color:c.inquiry_count>2?"#b8943a":"#1a1d2e"}}>{c.inquiry_count}×</div>
+            <div>
+              <button onClick={async()=>{
+                try{
+                  const d=await backendFetch("contact/"+c.contact_id);
+                  alert(JSON.stringify(d.data?.inquiries?.map(i=>i.object?.titel+"  ("+i.status+")"),null,2));
+                }catch(e){alert(e.message);}
+              }} style={{background:"none",border:"1px solid #e8edf3",borderRadius:6,padding:"4px 10px",fontSize:11,color:"#8a95a8",cursor:"pointer",transition:"all .15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="#b8943a";e.currentTarget.style.color="#b8943a"}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8edf3";e.currentTarget.style.color="#8a95a8"}}>
+                Historie
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // INSERATE VIEW
 function InserateView(){
   const [state,setState]=useState("idle");
@@ -529,7 +852,7 @@ function InserateView(){
 }
 
 // APP
-const NAV=[{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
+const NAV=[{id:"bestand",icon:"🏢",label:"Mein Bestand"},{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
 
 function App(){
   const [page,setPage]=useState("objekte");
@@ -564,6 +887,7 @@ function App(){
         {page==="recht"&&<RechtView/>}
         {page==="sparring"&&<SparringView/>}
         {page==="inserate"&&<InserateView/>}
+        {page==="bestand"&&<MeinBestandView/>}
       </div>
     </div>
   </div>;
