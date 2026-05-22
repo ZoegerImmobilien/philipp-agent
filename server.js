@@ -453,3 +453,108 @@ Objekt(e): [Objekttitel]`;
     res.status(500).json({ error: err.message });
   }
 });
+
+// ANALYSEN ENDPUNKT – aggregiert alle 5 Analysen in einem Aufruf
+app.get("/api/analysen", async (req, res) => {
+  if (!ZOEGER_API_KEY) return res.status(500).json({ error: "ZOEGER_API_KEY nicht gesetzt" });
+  try {
+    const h = { "Authorization": `Bearer ${ZOEGER_API_KEY}` };
+    const [rRes, iRes, cRes] = await Promise.all([
+      fetch(`${ZOEGER_BASE}/realestates`, { headers: h }),
+      fetch(`${ZOEGER_BASE}/inquiries`, { headers: h }),
+      fetch(`${ZOEGER_BASE}/contacts`, { headers: h }),
+    ]);
+    const realestates = (await rRes.json()).data || [];
+    const inquiries = (await iRes.json()).data || [];
+    const contacts = (await cRes.json()).data || [];
+    const today = new Date();
+
+    // 1. CONVERSION FUNNEL
+    const statusOrder = ["offen","beantwortet","besichtigung","abgesagt","gekauft"];
+    const funnel = {};
+    statusOrder.forEach(s => funnel[s] = inquiries.filter(i => i.status === s).length);
+    funnel.gesamt = inquiries.length;
+    funnel.conversion_besichtigung = inquiries.length ? Math.round(funnel.besichtigung / inquiries.length * 100) : 0;
+    funnel.conversion_kauf = inquiries.length ? Math.round(funnel.gekauft / inquiries.length * 100) : 0;
+
+    // 2. VERMARKTUNGSDAUER (aktive Objekte: Tage seit Veröffentlichung)
+    const daysOnMarket = {};
+    const daysOnMarketList = [];
+    realestates.filter(r => r.date_published).forEach(r => {
+      const days = Math.floor((today - new Date(r.date_published)) / 86400000);
+      const type = r.object_type || "Unbekannt";
+      if (!daysOnMarket[type]) daysOnMarket[type] = { total: 0, count: 0, items: [] };
+      daysOnMarket[type].total += days;
+      daysOnMarket[type].count++;
+      daysOnMarket[type].items.push({ titel: r.titel, days, status: r.status, preis: r.kaufpreis });
+      daysOnMarketList.push({ type, days, status: r.status });
+    });
+    const avgDaysByType = {};
+    Object.entries(daysOnMarket).forEach(([type, v]) => {
+      avgDaysByType[type] = { avg: Math.round(v.total / v.count), count: v.count };
+    });
+
+    // 3. NACHFRAGE-HEATMAP
+    const nachfrageByType = {};
+    const nachfrageByOrt = {};
+    inquiries.forEach(i => {
+      const type = i.object_type || i.object?.object_type || "Unbekannt";
+      nachfrageByType[type] = (nachfrageByType[type] || 0) + 1;
+      // Ort aus Adresse extrahieren
+      const adresse = i.object?.titel || "";
+      const ortMatch = adresse.match(/\b(Hamm-\w+|\bHeessen\b|\bWerries\b|\bMitte\b|\bHerringen\b|\bBockum-Hövel\b|\bMark\b|\bPelkum\b|\bRhynern\b)/i);
+      if (ortMatch) {
+        nachfrageByOrt[ortMatch[0]] = (nachfrageByOrt[ortMatch[0]] || 0) + 1;
+      }
+    });
+    // Auch aus Objekt-Adressen
+    realestates.forEach(r => {
+      const stadtteil = r.adresse_details?.ort || "";
+      if (stadtteil && stadtteil !== "Hamm") {
+        // skip
+      }
+    });
+
+    // 4. INTERESSENTEN-SCORING
+    const scored = contacts.map(c => {
+      const daysSinceLast = c.last_inquiry_at ?
+        Math.floor((today - new Date(c.last_inquiry_at)) / 86400000) : 999;
+      const daysSinceFirst = c.first_inquiry_at ?
+        Math.floor((today - new Date(c.first_inquiry_at)) / 86400000) : 0;
+      // Score: Häufigkeit (40%), Aktualität (40%), Aktivitätsspanne (20%)
+      const freqScore = Math.min(c.inquiry_count * 25, 100);
+      const recencyScore = Math.max(0, 100 - daysSinceLast * 3);
+      const spanScore = Math.min(daysSinceFirst / 3, 100);
+      const score = Math.round(freqScore * 0.4 + recencyScore * 0.4 + spanScore * 0.2);
+      return {
+        name: c.name, phone: c.phone || c.mobile, email: c.email,
+        inquiry_count: c.inquiry_count, daysSinceLast, score,
+        last_inquiry_at: c.last_inquiry_at, contact_id: c.contact_id,
+      };
+    }).sort((a, b) => b.score - a.score).slice(0, 15);
+
+    // 5. AKTIVITÄTS-DASHBOARD
+    const byMonth = {};
+    const byWeekday = { 0:0,1:0,2:0,3:0,4:0,5:0,6:0 };
+    const byHour = {};
+    inquiries.forEach(i => {
+      if (!i.date_created) return;
+      const d = new Date(i.date_created);
+      const m = d.toISOString().slice(0, 7);
+      byMonth[m] = (byMonth[m] || 0) + 1;
+      byWeekday[d.getDay()]++;
+      const h2 = d.getHours();
+      byHour[h2] = (byHour[h2] || 0) + 1;
+    });
+    const sortedMonths = Object.entries(byMonth).sort(([a],[b]) => a.localeCompare(b)).slice(-12);
+
+    res.json({
+      success: true,
+      totals: { realestates: realestates.length, inquiries: inquiries.length, contacts: contacts.length },
+      funnel, avgDaysByType, nachfrageByType, nachfrageByOrt,
+      scored, byMonth: sortedMonths, byWeekday, byHour,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
