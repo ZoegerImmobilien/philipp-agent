@@ -383,6 +383,307 @@ function SparringView(){
 
 
 
+
+// ANALYSEN VIEW
+function AnalysenView(){
+  const [state,setState]=useState("idle");
+  const [data,setData]=useState(null);
+  const [tab,setTab]=useState("funnel");
+
+  const load=async()=>{
+    setState("loading");
+    try{
+      const r=await fetch("/api/analysen");
+      const d=await r.json();
+      if(!d.success)throw new Error(d.error);
+      setData(d); setState("done");
+    }catch(e){setState("error:"+e.message);}
+  };
+
+  const tabs=[
+    {id:"funnel",icon:"🔽",label:"Conversion"},
+    {id:"vermarktung",icon:"⏱️",label:"Vermarktung"},
+    {id:"nachfrage",icon:"🔥",label:"Nachfrage"},
+    {id:"scoring",icon:"⭐",label:"Scoring"},
+    {id:"aktivitaet",icon:"📅",label:"Aktivität"},
+  ];
+
+  return(
+    <div>
+      <SH title="Analysen" sub="5 datenbasierte Einblicke aus eurem Bestand"/>
+      {state==="idle"&&(
+        <Card s={{textAlign:"center",padding:"56px 24px"}}>
+          <div style={{fontSize:44,marginBottom:16}}>📊</div>
+          <div style={{fontSize:16,fontWeight:700,color:"#1a1d2e",marginBottom:8}}>Analysen starten</div>
+          <div style={{fontSize:13,color:"#8a95a8",marginBottom:6}}>Lädt alle Objekte, Anfragen und Kontakte aus eurem Backend</div>
+          <div style={{fontSize:12,color:"#b0b8c8",marginBottom:28}}>Conversion · Vermarktungsdauer · Nachfrage · Scoring · Aktivität</div>
+          <button className="btn-primary" onClick={load} style={{padding:"13px 36px",fontSize:14}}>📊 Alle Analysen laden</button>
+        </Card>
+      )}
+      {state==="loading"&&(
+        <Card s={{textAlign:"center",padding:"56px"}}>
+          <Spin s={32}/>
+          <div style={{color:"#8a95a8",marginTop:16,fontSize:14}}>Lade und aggregiere Daten…</div>
+          <div style={{color:"#b0b8c8",marginTop:6,fontSize:12}}>Objekte · Anfragen · Kontakte</div>
+        </Card>
+      )}
+      {state.startsWith("error:")&&(
+        <Card s={{textAlign:"center",padding:"48px"}}>
+          <div style={{fontSize:32,marginBottom:12}}>⚠️</div>
+          <div style={{fontSize:14,color:"#dc2626",marginBottom:16}}>{state.replace("error:","")}</div>
+          <button className="btn-primary" onClick={load}>Erneut versuchen</button>
+        </Card>
+      )}
+      {state==="done"&&data&&(
+        <div style={{display:"flex",flexDirection:"column",gap:20}}>
+
+          {/* Gesamt-Stats */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+            {[
+              {l:"Objekte",v:data.totals.realestates,i:"🏠",c:"#b8943a"},
+              {l:"Anfragen",v:data.totals.inquiries,i:"📩",c:"#003da5"},
+              {l:"Kontakte",v:data.totals.contacts,i:"👥",c:"#16a34a"},
+            ].map(s=>(
+              <Card key={s.l} s={{padding:"16px",textAlign:"center",borderTop:"3px solid "+s.c}}>
+                <div style={{fontSize:20,marginBottom:4}}>{s.i}</div>
+                <div style={{fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
+                <div style={{fontSize:11,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.l}</div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Analyse Tabs */}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {tabs.map(t=>(
+              <button key={t.id} className={"chip"+(tab===t.id?" on":"")} onClick={()=>setTab(t.id)}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+            <button onClick={load} style={{marginLeft:"auto",background:"none",border:"1px solid #e8edf3",borderRadius:8,padding:"5px 12px",fontSize:11,color:"#8a95a8",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.borderColor="#b8943a"} onMouseLeave={e=>e.currentTarget.style.borderColor="#e8edf3"}>🔄 Neu laden</button>
+          </div>
+
+          {tab==="funnel"&&<ConversionFunnel data={data.funnel}/>}
+          {tab==="vermarktung"&&<VermarktungAnalyse data={data.avgDaysByType}/>}
+          {tab==="nachfrage"&&<NachfrageHeatmap data={data.nachfrageByType}/>}
+          {tab==="scoring"&&<InteressentenScoring data={data.scored}/>}
+          {tab==="aktivitaet"&&<AktivitaetsDashboard byMonth={data.byMonth} byWeekday={data.byWeekday}/>}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Hilfs: Balken-Chart
+function BarChart({items,color="#b8943a",unit="",maxVal}){
+  const max=maxVal||Math.max(...items.map(i=>i.value),1);
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {items.map((item,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:130,fontSize:12,color:"#4a5568",textAlign:"right",flexShrink:0,fontWeight:500}}>{item.label}</div>
+          <div style={{flex:1,background:"#f0f2f5",borderRadius:6,height:24,overflow:"hidden"}}>
+            <div style={{
+              width:Math.max((item.value/max*100),2)+"%",height:"100%",
+              background:item.color||color,borderRadius:6,
+              transition:"width .6s ease",display:"flex",alignItems:"center",paddingLeft:8,
+              minWidth:item.value>0?32:0,
+            }}>
+              {item.value>0&&<span style={{fontSize:11,fontWeight:700,color:"#fff",whiteSpace:"nowrap"}}>{item.value}{unit}</span>}
+            </div>
+          </div>
+          {item.sub&&<div style={{fontSize:11,color:"#8a95a8",width:80,flexShrink:0}}>{item.sub}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 1. CONVERSION FUNNEL
+function ConversionFunnel({data}){
+  const stages=[
+    {key:"gesamt",label:"Anfragen gesamt",color:"#1a1d2e"},
+    {key:"beantwortet",label:"Beantwortet",color:"#003da5"},
+    {key:"besichtigung",label:"Besichtigung",color:"#b8943a"},
+    {key:"gekauft",label:"Gekauft / Abschluss",color:"#16a34a"},
+  ];
+  const max=data.gesamt||1;
+  return(
+    <Card>
+      <div style={{fontWeight:700,fontSize:14,color:"#1a1d2e",marginBottom:6}}>🔽 Conversion-Funnel</div>
+      <div style={{fontSize:12,color:"#8a95a8",marginBottom:20}}>Wie viele Anfragen werden zu Besichtigungen und Abschlüssen?</div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+        {stages.map((s,i)=>{
+          const val=data[s.key]||0;
+          const pct=Math.round(val/max*100);
+          const width=Math.max(pct,2);
+          return(
+            <div key={s.key}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:12,fontWeight:600,color:"#4a5568"}}>{s.label}</span>
+                <span style={{fontSize:12,fontWeight:700,color:s.color}}>{val} ({pct}%)</span>
+              </div>
+              <div style={{background:"#f0f2f5",borderRadius:8,height:32,overflow:"hidden"}}>
+                <div style={{width:width+"%",height:"100%",background:s.color,borderRadius:8,transition:"width .8s ease",opacity:0.9}}/>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginTop:8}}>
+        {[
+          {l:"Absprung-Rate",v:(data.abgesagt||0)+" von "+(data.gesamt||0),c:"#dc2626"},
+          {l:"Besichtigungs-Quote",v:data.conversion_besichtigung+"%",c:"#b8943a"},
+          {l:"Abschluss-Quote",v:data.conversion_kauf+"%",c:"#16a34a"},
+        ].map(m=>(
+          <div key={m.l} style={{background:"#f7f8fa",borderRadius:10,padding:"14px",textAlign:"center",border:"1px solid #e8edf3"}}>
+            <div style={{fontSize:22,fontWeight:700,color:m.c}}>{m.v}</div>
+            <div style={{fontSize:11,color:"#8a95a8",marginTop:4,textTransform:"uppercase",letterSpacing:.4}}>{m.l}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// 2. VERMARKTUNGSDAUER
+function VermarktungAnalyse({data}){
+  const typeLabels={EFH:"Einfamilienhaus",ETW:"Eigentumswohnung",MFH:"Mehrfamilienhaus",DHH:"Doppelhaushälfte",RH:"Reihenhaus",Grundstück:"Grundstück",Büro:"Büro"};
+  const typeIcons={EFH:"🏠",ETW:"🏢",MFH:"🏘️",DHH:"🏡",RH:"🏚️",Grundstück:"🌿",Büro:"💼"};
+  const items=Object.entries(data||{}).map(([type,v])=>({
+    label:(typeIcons[type]||"🏠")+" "+(typeLabels[type]||type),
+    value:v.avg,
+    sub:v.count+" Objekte",
+    color:v.avg>90?"#dc2626":v.avg>60?"#d48f00":"#16a34a",
+  })).sort((a,b)=>b.value-a.value);
+
+  return(
+    <Card>
+      <div style={{fontWeight:700,fontSize:14,color:"#1a1d2e",marginBottom:6}}>⏱️ Vermarktungsdauer</div>
+      <div style={{fontSize:12,color:"#8a95a8",marginBottom:20}}>Durchschnittliche Tage am Markt seit Veröffentlichung (aktive Objekte)</div>
+      {items.length>0?<BarChart items={items} unit="d"/>:<div style={{color:"#8a95a8",fontSize:13,textAlign:"center",padding:"20px"}}>Keine Daten verfügbar</div>}
+      <div style={{marginTop:20,display:"flex",gap:12,flexWrap:"wrap"}}>
+        {[{l:"Schnell < 30d",c:"#16a34a"},{l:"Normal 30–90d",c:"#d48f00"},{l:"Läuft > 90d",c:"#dc2626"}].map(l=>(
+          <div key={l.l} style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:10,height:10,borderRadius:3,background:l.c}}/>
+            <span style={{fontSize:11,color:"#8a95a8"}}>{l.l}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// 3. NACHFRAGE HEATMAP
+function NachfrageHeatmap({data}){
+  const typeLabels={EFH:"Einfamilienhaus",ETW:"Eigentumswohnung",MFH:"Mehrfamilienhaus",DHH:"Doppelhaushälfte",RH:"Reihenhaus",Grundstück:"Grundstück",Büro:"Büro",Gewerbe:"Gewerbe",Wohnung:"Wohnung"};
+  const typeIcons={EFH:"🏠",ETW:"🏢",MFH:"🏘️",DHH:"🏡",RH:"🏚️",Grundstück:"🌿",Büro:"💼",Gewerbe:"🏭",Wohnung:"🏠"};
+  const max=Math.max(...Object.values(data||{}),1);
+  const items=Object.entries(data||{}).map(([type,count])=>({
+    label:(typeIcons[type]||"🏠")+" "+(typeLabels[type]||type),
+    value:count,
+    sub:Math.round(count/Object.values(data).reduce((a,b)=>a+b,0)*100)+"%",
+    color:"#003da5",
+  })).sort((a,b)=>b.value-a.value);
+
+  return(
+    <Card>
+      <div style={{fontWeight:700,fontSize:14,color:"#1a1d2e",marginBottom:6}}>🔥 Nachfrage nach Objekttyp</div>
+      <div style={{fontSize:12,color:"#8a95a8",marginBottom:20}}>Welche Objekttypen werden am häufigsten angefragt?</div>
+      {items.length>0?<BarChart items={items} color="#003da5"/>:<div style={{color:"#8a95a8",fontSize:13,textAlign:"center",padding:"20px"}}>Keine Anfragen vorhanden</div>}
+      {items.length>0&&(
+        <div style={{marginTop:20,background:"#f0f5ff",borderRadius:10,padding:"14px 16px",border:"1px solid #dbeafe"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#1d4ed8",marginBottom:4}}>💡 Insight</div>
+          <div style={{fontSize:13,color:"#1e3a8a",lineHeight:1.6}}>
+            {items[0]?.label.replace(/^[^\s]+\s/,"")} ist mit {items[0]?.value} Anfragen ({items[0]?.sub}) der gefragteste Objekttyp.
+            {items[0]?.value > (items[1]?.value||0)*1.5 ? " Ihr habt hier einen klaren Schwerpunkt – prüft ob der Bestand die Nachfrage deckt." : " Die Nachfrage ist breit verteilt."}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// 4. INTERESSENTEN SCORING
+function InteressentenScoring({data}){
+  const scoreColor=s=>s>=70?"#16a34a":s>=40?"#d48f00":"#dc2626";
+  const scoreBg=s=>s>=70?"#dcfce7":s>=40?"#fef9c3":"#fee2e2";
+  return(
+    <Card>
+      <div style={{fontWeight:700,fontSize:14,color:"#1a1d2e",marginBottom:6}}>⭐ Interessenten-Scoring</div>
+      <div style={{fontSize:12,color:"#8a95a8",marginBottom:4}}>Top 15 Kontakte nach Kaufwahrscheinlichkeit</div>
+      <div style={{fontSize:11,color:"#b0b8c8",marginBottom:20}}>Score basiert auf: Anfragehäufigkeit (40%) · Aktualität (40%) · Aktivitätsspanne (20%)</div>
+      <div style={{borderRadius:10,overflow:"hidden",border:"1px solid #e8edf3"}}>
+        <div style={{display:"grid",gridTemplateColumns:"32px 1fr 80px 80px 70px",background:"#f4f5f7",padding:"8px 14px",borderBottom:"2px solid #b8943a"}}>
+          {["#","Name & Kontakt","Anfragen","Letzter","Score"].map(h=><div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>)}
+        </div>
+        {(data||[]).map((c,i)=>(
+          <div key={i} style={{display:"grid",gridTemplateColumns:"32px 1fr 80px 80px 70px",padding:"11px 14px",background:i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",alignItems:"center"}}>
+            <div style={{fontSize:12,color:"#b0b8c8",fontWeight:700}}>{i+1}</div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{c.name}</div>
+              <div style={{fontSize:11,color:"#8a95a8"}}>{c.phone||c.email||"–"}</div>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,color:c.inquiry_count>2?"#b8943a":"#64748b"}}>{c.inquiry_count}×</div>
+            <div style={{fontSize:11,color:c.daysSinceLast>30?"#dc2626":c.daysSinceLast>14?"#d48f00":"#16a34a",fontWeight:600}}>{c.daysSinceLast}d ago</div>
+            <div>
+              <span style={{background:scoreBg(c.score),color:scoreColor(c.score),fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:20}}>{c.score}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// 5. AKTIVITÄTS-DASHBOARD
+function AktivitaetsDashboard({byMonth,byWeekday}){
+  const wdLabels=["So","Mo","Di","Mi","Do","Fr","Sa"];
+  const wdData=Object.entries(byWeekday||{}).map(([d,v])=>({label:wdLabels[parseInt(d)],value:v,color:parseInt(d)>=1&&parseInt(d)<=5?"#003da5":"#b8943a"}));
+  const monthItems=(byMonth||[]).map(([m,v])=>({label:m.slice(5)+"/"+m.slice(2,4),value:v}));
+  const maxMonth=Math.max(...monthItems.map(i=>i.value),1);
+  const maxWd=Math.max(...wdData.map(i=>i.value),1);
+
+  // Bester Monat, bester Wochentag
+  const bestMonth=monthItems.reduce((a,b)=>b.value>a.value?b:a,{label:"–",value:0});
+  const bestDay=wdData.reduce((a,b)=>b.value>a.value?b:a,{label:"–",value:0});
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,color:"#1a1d2e",marginBottom:4}}>📅 Anfragen nach Wochentag</div>
+          <div style={{fontSize:11,color:"#8a95a8",marginBottom:16}}>Wann kommen die meisten Anfragen?</div>
+          <BarChart items={wdData} maxVal={maxWd}/>
+          <div style={{marginTop:16,background:"#f7f8fa",borderRadius:8,padding:"10px 12px",border:"1px solid #e8edf3"}}>
+            <span style={{fontSize:12,color:"#8a95a8"}}>Stärkster Tag: </span>
+            <span style={{fontSize:12,fontWeight:700,color:"#b8943a"}}>{bestDay.label} ({bestDay.value} Anfragen)</span>
+          </div>
+        </Card>
+        <Card>
+          <div style={{fontWeight:700,fontSize:13,color:"#1a1d2e",marginBottom:4}}>📈 Anfragen letzte 12 Monate</div>
+          <div style={{fontSize:11,color:"#8a95a8",marginBottom:16}}>Monatliche Entwicklung</div>
+          {monthItems.length>0?(
+            <div style={{display:"flex",alignItems:"flex-end",gap:4,height:120}}>
+              {monthItems.map((m,i)=>(
+                <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                  <div style={{fontSize:9,color:"#b8943a",fontWeight:700,height:16}}>{m.value>0?m.value:""}</div>
+                  <div style={{width:"100%",background:m.label===bestMonth.label?"#b8943a":"#dbeafe",borderRadius:"4px 4px 0 0",height:Math.max(m.value/maxMonth*80,2)+"px",transition:"height .6s ease"}}/>
+                  <div style={{fontSize:8,color:"#8a95a8",textAlign:"center",transform:"rotate(-45deg)",transformOrigin:"center",marginTop:4,whiteSpace:"nowrap"}}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          ):<div style={{color:"#8a95a8",fontSize:13,textAlign:"center",padding:"20px"}}>Keine Daten</div>}
+          <div style={{marginTop:24,background:"#f7f8fa",borderRadius:8,padding:"10px 12px",border:"1px solid #e8edf3"}}>
+            <span style={{fontSize:12,color:"#8a95a8"}}>Stärkster Monat: </span>
+            <span style={{fontSize:12,fontWeight:700,color:"#b8943a"}}>{bestMonth.label} ({bestMonth.value} Anfragen)</span>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 // MEIN BESTAND VIEW
 function MeinBestandView(){
   const [mode,setMode]=useState("objekte");
@@ -852,7 +1153,7 @@ function InserateView(){
 }
 
 // APP
-const NAV=[{id:"bestand",icon:"🏢",label:"Mein Bestand"},{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
+const NAV=[{id:"bestand",icon:"🏢",label:"Mein Bestand"},{id:"analysen",icon:"📊",label:"Analysen"},{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
 
 function App(){
   const [page,setPage]=useState("objekte");
@@ -888,6 +1189,7 @@ function App(){
         {page==="sparring"&&<SparringView/>}
         {page==="inserate"&&<InserateView/>}
         {page==="bestand"&&<MeinBestandView/>}
+        {page==="analysen"&&<AnalysenView/>}
       </div>
     </div>
   </div>;
