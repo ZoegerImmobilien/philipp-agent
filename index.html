@@ -1183,7 +1183,12 @@ function AnrufListe(){
 
 // INTERESSENTEN
 function InteressentenBackend(){
-  const [data,setData]=useState(null);const [load,setLoad]=useState(false);const [search,setSearch]=useState("");
+  const [data,setData]=useState(null);
+  const [load,setLoad]=useState(false);
+  const [search,setSearch]=useState("");
+  const [selected,setSelected]=useState(null); // expanded contact
+  const [detail,setDetail]=useState(null);
+  const [detailLoad,setDetailLoad]=useState(false);
 
   useEffect(()=>{
     (async()=>{
@@ -1194,49 +1199,175 @@ function InteressentenBackend(){
     })();
   },[]);
 
+  const openDetail=async(c)=>{
+    if(selected===c.contact_id){setSelected(null);setDetail(null);return;}
+    setSelected(c.contact_id);
+    setDetail(null);
+    setDetailLoad(true);
+    try{
+      const d=await backendFetch("contact/"+c.contact_id);
+      setDetail(d.data);
+    }catch(e){setDetail({error:e.message});}
+    setDetailLoad(false);
+  };
+
+  const statusColors={
+    offen:{bg:"#dbeafe",c:"#1d4ed8"},
+    beantwortet:{bg:"#dcfce7",c:"#166534"},
+    besichtigung:{bg:"#fef9c3",c:"#854d0e"},
+    abgesagt:{bg:"#fee2e2",c:"#991b1b"},
+    gekauft:{bg:"#d1fae5",c:"#065f46"},
+  };
+
   if(load)return<Card s={{textAlign:"center",padding:"48px"}}><Spin s={28}/><div style={{color:"#8a95a8",marginTop:12,fontSize:13}}>Lade Interessenten…</div></Card>;
   if(!data)return null;
   if(data.error)return<Card s={{textAlign:"center",padding:"40px"}}><div style={{color:"#dc2626"}}>⚠️ {data.error}</div></Card>;
 
+  const mehrfach=(data.data||[]).filter(c=>c.inquiry_count>1).length;
   const items=(data.data||[]).filter(c=>!search||c.name?.toLowerCase().includes(search.toLowerCase())||c.email?.toLowerCase().includes(search.toLowerCase()));
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
-      <div style={{display:"flex",gap:8,alignItems:"center"}}>
-        <input className="inp" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Suche nach Name oder E-Mail…" style={{maxWidth:320}}/>
-        <span style={{fontSize:12,color:"#8a95a8",marginLeft:"auto"}}>{items.length} von {data.count} Interessenten</span>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+        {[
+          {l:"Gesamt",v:data.count,i:"👥",c:"#b8943a"},
+          {l:"Mehrfach-Anfrager",v:mehrfach,i:"🔁",c:"#003da5"},
+          {l:"Ø Anfragen",v:data.count?Math.round((data.data||[]).reduce((s,c)=>s+c.inquiry_count,0)/data.count*10)/10:0,i:"📊",c:"#16a34a"},
+        ].map(s=>(
+          <Card key={s.l} s={{padding:"14px",textAlign:"center",borderTop:"3px solid "+s.c}}>
+            <div style={{fontSize:18,marginBottom:4}}>{s.i}</div>
+            <div style={{fontSize:22,fontWeight:700,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.l}</div>
+          </Card>
+        ))}
       </div>
 
+      {/* Suche */}
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <input className="inp" value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Name oder E-Mail suchen…" style={{maxWidth:340}}/>
+        <span style={{fontSize:12,color:"#8a95a8",marginLeft:"auto"}}>{items.length} Interessenten</span>
+      </div>
+
+      {/* Liste */}
       <div style={{borderRadius:12,overflow:"hidden",border:"1px solid #e8edf3"}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 140px 100px 90px 90px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid #b8943a"}}>
-          {["Name & Kontakt","Erstkontakt","Letzter","Anfragen",""].map(h=><div key={h} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>)}
+        {/* Header */}
+        <div style={{display:"grid",gridTemplateColumns:"28px 1fr 130px 80px 80px 36px",background:"#f4f5f7",padding:"9px 16px",borderBottom:"2px solid #b8943a"}}>
+          {["","Name & Kontakt","Letzter Kontakt","Anfragen","Seit",""].map((h,i)=>(
+            <div key={i} style={{fontSize:10,fontWeight:700,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.8}}>{h}</div>
+          ))}
         </div>
-        {items.map((c,i)=>(
-          <div key={c.contact_id} style={{display:"grid",gridTemplateColumns:"1fr 140px 100px 90px 90px",padding:"12px 16px",background:i%2===0?"#fff":"#f9fafb",borderBottom:"1px solid #f0f2f5",borderLeft:c.inquiry_count>2?"3px solid #b8943a":"3px solid transparent",alignItems:"center",transition:"background .15s"}}
-            onMouseEnter={e=>e.currentTarget.style.background="#fdf8ef"}
-            onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"#fff":"#f9fafb"}>
-            <div>
-              {c.inquiry_count>2&&<span style={{background:"rgba(184,148,58,.12)",color:"#b8943a",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8,marginRight:5}}>MEHRFACH</span>}
-              <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{c.name}</div>
-              <div style={{fontSize:11,color:"#8a95a8"}}>{c.phone||c.mobile||c.email||"–"}</div>
+
+        {items.map((c,i)=>{
+          const isOpen=selected===c.contact_id;
+          const isMulti=c.inquiry_count>1;
+          return(
+            <div key={c.contact_id}>
+              {/* Zeile */}
+              <div
+                onClick={()=>openDetail(c)}
+                style={{
+                  display:"grid",gridTemplateColumns:"28px 1fr 130px 80px 80px 36px",
+                  padding:"13px 16px",
+                  background:isOpen?"#fdf8ef":i%2===0?"#fff":"#f9fafb",
+                  borderBottom:"1px solid #f0f2f5",
+                  borderLeft:isMulti?"3px solid #b8943a":"3px solid transparent",
+                  alignItems:"center",cursor:"pointer",transition:"background .15s",
+                }}
+                onMouseEnter={e=>!isOpen&&(e.currentTarget.style.background="#fdf8ef")}
+                onMouseLeave={e=>!isOpen&&(e.currentTarget.style.background=i%2===0?"#fff":"#f9fafb")}
+              >
+                {/* Avatar */}
+                <div style={{width:24,height:24,borderRadius:"50%",background:isMulti?"#b8943a":"#e8edf3",color:isMulti?"#fff":"#8a95a8",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {c.name?.charAt(0)?.toUpperCase()||"?"}
+                </div>
+                {/* Name */}
+                <div>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",marginBottom:2}}>
+                    {isMulti&&<span style={{background:"rgba(184,148,58,.12)",color:"#b8943a",fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:8}}>MEHRFACH</span>}
+                    <span style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{c.name}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#8a95a8"}}>{c.phone||c.mobile||c.email||"–"}</div>
+                </div>
+                <div><DaysBadge iso={c.last_inquiry_at}/></div>
+                <div style={{fontSize:14,fontWeight:700,color:isMulti?"#b8943a":"#64748b"}}>{c.inquiry_count}×</div>
+                <div style={{fontSize:11,color:"#b0b8c8"}}>{c.first_inquiry_at?new Date(c.first_inquiry_at).toLocaleDateString("de-DE",{month:"2-digit",year:"2-digit"}):"–"}</div>
+                <div style={{fontSize:14,color:"#b8943a",fontWeight:700,textAlign:"center"}}>{isOpen?"▲":"▼"}</div>
+              </div>
+
+              {/* Detail-Panel */}
+              {isOpen&&(
+                <div style={{background:"#fdf8ef",borderBottom:"2px solid #b8943a",padding:"0"}}>
+                  {detailLoad&&<div style={{padding:"20px 24px",display:"flex",gap:10,alignItems:"center"}}><Spin s={14}/><span style={{fontSize:13,color:"#8a95a8"}}>Lade Anfrage-Historie…</span></div>}
+                  {detail?.error&&<div style={{padding:"16px 24px",color:"#dc2626",fontSize:13}}>⚠️ {detail.error}</div>}
+                  {detail&&!detail.error&&(
+                    <div style={{padding:"16px 24px 20px"}}>
+                      {/* Kontakt-Header */}
+                      <div style={{display:"flex",gap:24,flexWrap:"wrap",marginBottom:16,paddingBottom:12,borderBottom:"1px solid #ede8df"}}>
+                        <div>
+                          <div style={{fontSize:11,color:"#8a95a8",marginBottom:2}}>NAME</div>
+                          <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{detail.name}</div>
+                        </div>
+                        {(detail.phone||detail.mobile)&&<div>
+                          <div style={{fontSize:11,color:"#8a95a8",marginBottom:2}}>TELEFON</div>
+                          <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{detail.phone||detail.mobile}</div>
+                        </div>}
+                        {detail.email&&<div>
+                          <div style={{fontSize:11,color:"#8a95a8",marginBottom:2}}>E-MAIL</div>
+                          <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{detail.email}</div>
+                        </div>}
+                        {detail.company&&<div>
+                          <div style={{fontSize:11,color:"#8a95a8",marginBottom:2}}>UNTERNEHMEN</div>
+                          <div style={{fontSize:13,fontWeight:600,color:"#1a1d2e"}}>{detail.company}</div>
+                        </div>}
+                      </div>
+
+                      {/* Anfrage-Historie */}
+                      <div style={{fontSize:11,fontWeight:700,color:"#8a6820",textTransform:"uppercase",letterSpacing:.5,marginBottom:10}}>
+                        Anfrage-Historie ({detail.inquiries?.length||0} Objekte)
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        {(detail.inquiries||[]).map((inq,j)=>{
+                          const sc=statusColors[inq.status]||{bg:"#f1f5f9",c:"#64748b"};
+                          return(
+                            <div key={j} style={{background:"#fff",border:"1px solid #e8edf3",borderRadius:10,padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr 120px 110px 100px",gap:12,alignItems:"center"}}>
+                              <div>
+                                <div style={{fontSize:12,fontWeight:600,color:"#1a1d2e",marginBottom:2}}>
+                                  {inq.object?.titel||"Unbekanntes Objekt"}
+                                </div>
+                                <div style={{fontSize:11,color:"#8a95a8",display:"flex",gap:10}}>
+                                  <span>{inq.object?.objektnummer||"–"}</span>
+                                  {inq.object?.vermarktung&&<span>· {inq.object.vermarktung}</span>}
+                                </div>
+                                {inq.message&&<div style={{fontSize:11,color:"#64748b",marginTop:4,fontStyle:"italic",lineHeight:1.4}}>
+                                  "{inq.message.slice(0,80)}{inq.message.length>80?"…":""}"
+                                </div>}
+                              </div>
+                              <div style={{fontSize:11,color:"#64748b"}}>
+                                {inq.date_created?new Date(inq.date_created).toLocaleDateString("de-DE"):"–"}
+                              </div>
+                              <div>
+                                <span style={{background:sc.bg,color:sc.c,fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10}}>{inq.status}</span>
+                              </div>
+                              <div style={{fontSize:11,color:"#8a95a8"}}>
+                                {inq.source||"–"}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {(!detail.inquiries||detail.inquiries.length===0)&&(
+                          <div style={{color:"#8a95a8",fontSize:13,textAlign:"center",padding:"16px"}}>Keine Anfragen gefunden</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div style={{fontSize:11,color:"#64748b"}}>{c.first_inquiry_at?new Date(c.first_inquiry_at).toLocaleDateString("de-DE"):"–"}</div>
-            <div><DaysBadge iso={c.last_inquiry_at}/></div>
-            <div style={{fontSize:14,fontWeight:700,color:c.inquiry_count>2?"#b8943a":"#1a1d2e"}}>{c.inquiry_count}×</div>
-            <div>
-              <button onClick={async()=>{
-                try{
-                  const d=await backendFetch("contact/"+c.contact_id);
-                  alert(JSON.stringify(d.data?.inquiries?.map(i=>i.object?.titel+"  ("+i.status+")"),null,2));
-                }catch(e){alert(e.message);}
-              }} style={{background:"none",border:"1px solid #e8edf3",borderRadius:6,padding:"4px 10px",fontSize:11,color:"#8a95a8",cursor:"pointer",transition:"all .15s"}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor="#b8943a";e.currentTarget.style.color="#b8943a"}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor="#e8edf3";e.currentTarget.style.color="#8a95a8"}}>
-                Historie
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
