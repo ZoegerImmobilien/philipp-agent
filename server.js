@@ -558,3 +558,102 @@ app.get("/api/analysen", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// VERKÄUFER-REPORT ENDPUNKT
+app.get("/api/verkauf-report", async (req, res) => {
+  if (!ZOEGER_API_KEY || !API_KEY) return res.status(500).json({ error: "API Keys fehlen" });
+  const { realestate_id, monat, notizen } = req.query;
+  if (!realestate_id) return res.status(400).json({ error: "realestate_id fehlt" });
+
+  try {
+    const h = { "Authorization": `Bearer ${ZOEGER_API_KEY}` };
+    const [objRes, inqRes] = await Promise.all([
+      fetch(`${ZOEGER_BASE}/realestate/${realestate_id}`, { headers: h }),
+      fetch(`${ZOEGER_BASE}/inquiries?realestate_id=${realestate_id}`, { headers: h }),
+    ]);
+    const obj = await objRes.json();
+    const inq = await inqRes.json();
+    if (!obj.success) throw new Error("Objekt nicht gefunden");
+
+    const o = obj.data;
+    const anfragen = inq.data || [];
+    const monatLabel = monat || new Date().toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+
+    // Anfragen nach Status gruppieren
+    const statusCount = {};
+    anfragen.forEach(a => { statusCount[a.status] = (statusCount[a.status] || 0) + 1; });
+
+    // Tage am Markt
+    const daysOnMarket = o.date_published
+      ? Math.floor((Date.now() - new Date(o.date_published)) / 86400000) : null;
+
+    const prompt = `Du bist ein professioneller Immobilienmakler bei Zoeger Immobilien in Hamm. 
+Erstelle einen monatlichen Verkäufer-Report für ${monatLabel}.
+
+OBJEKTDATEN:
+- Titel: ${o.titel}
+- Adresse: ${o.adresse}
+- Preis: ${o.kaufpreis ? o.kaufpreis.toLocaleString("de-DE") + " €" : "k.A."}
+- Typ: ${o.object_type} | Zimmer: ${o.zimmer || "k.A."} | Fläche: ${o.wohnflaeche || "k.A."}m²
+- Baujahr: ${o.baujahr || "k.A."} | Status: ${o.status}
+- Am Markt seit: ${daysOnMarket !== null ? daysOnMarket + " Tagen" : "k.A."}
+- Anfragen gesamt: ${anfragen.length}
+
+ANFRAGEN-STATUS:
+${Object.entries(statusCount).map(([s,n]) => `- ${s}: ${n}`).join("\n") || "Keine Anfragen"}
+
+${notizen ? "MAKLER-NOTIZEN: " + notizen : ""}
+
+Erstelle einen professionellen Report mit EXAKT diesem JSON-Format (kein Markdown, nur JSON):
+{
+  "zusammenfassung": "2-3 Sätze persönliche Einschätzung des Monats, positiv aber ehrlich",
+  "aktivitaet": "Beschreibung der Aktivitäten diesen Monat (Anfragen, Besichtigungen, Feedback)",
+  "markt": "Kurze Markteinschätzung für diesen Objekttyp in Hamm, Vergleich mit Objekt",
+  "preisstrategie": "Diplomatische Einschätzung ob Preis passt oder Anpassung sinnvoll wäre",
+  "empfehlungen": ["Empfehlung 1", "Empfehlung 2", "Empfehlung 3"],
+  "ausblick": "Positiver Ausblick für den nächsten Monat, konkrete nächste Schritte"
+}`;
+
+    const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    });
+    const aiData = await aiRes.json();
+    const raw = aiData.content?.filter(b => b.type === "text").map(b => b.text).join("") || "";
+
+    let report = {};
+    try {
+      const s = raw.indexOf("{"), e = raw.lastIndexOf("}");
+      report = JSON.parse(raw.slice(s, e + 1));
+    } catch(e) { report = { zusammenfassung: raw, aktivitaet: "", markt: "", preisstrategie: "", empfehlungen: [], ausblick: "" }; }
+
+    res.json({
+      success: true,
+      objekt: { titel: o.titel, adresse: o.adresse, preis: o.kaufpreis, typ: o.object_type, zimmer: o.zimmer, flaeche: o.wohnflaeche, baujahr: o.baujahr, status: o.status, daysOnMarket, objektnummer: o.objektnummer },
+      anfragen: { gesamt: anfragen.length, statusCount },
+      report, monatLabel,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// VERKÄUFER-REPORT EMAIL VERSAND
+app.post("/api/verkauf-report/send", express.json(), async (req, res) => {
+  if (!RESEND_API_KEY) return res.status(500).json({ error: "RESEND_API_KEY fehlt" });
+  const { to, html, objekt, monat } = req.body;
+  if (!to || !html) return res.status(400).json({ error: "to und html fehlen" });
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
+      body: JSON.stringify({ from: EMAIL_FROM, to, subject: `Ihr Verkäufer-Report ${monat} – ${objekt}`, html }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.message || "Resend Fehler");
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
