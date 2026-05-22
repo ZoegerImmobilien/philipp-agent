@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -383,6 +384,241 @@ function SparringView(){
 
 
 
+
+
+// VERKÄUFER-REPORT VIEW
+function VerkaufReportView(){
+  const [objekte,setObjekte]=useState([]);
+  const [selected,setSelected]=useState("");
+  const [notizen,setNotizen]=useState("");
+  const [state,setState]=useState("idle");
+  const [data,setData]=useState(null);
+  const [emailTo,setEmailTo]=useState("");
+  const [emailSent,setEmailSent]=useState(false);
+  const [sending,setSending]=useState(false);
+  const reportRef=React.useRef(null);
+
+  // Objekte laden
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const d=await backendFetch("realestates");
+        setObjekte((d.data||[]).filter(o=>o.status==="aktiv"||o.status==="reserviert"));
+      }catch(e){}
+    })();
+  },[]);
+
+  const generate=async()=>{
+    if(!selected)return;
+    setState("loading"); setData(null); setEmailSent(false);
+    try{
+      const params={realestate_id:selected};
+      if(notizen)params.notizen=notizen;
+      const r=await fetch("/api/verkauf-report?"+new URLSearchParams(params));
+      const d=await r.json();
+      if(!d.success)throw new Error(d.error);
+      setData(d); setState("done");
+    }catch(e){setState("error:"+e.message);}
+  };
+
+  const exportPDF=async()=>{
+    if(!reportRef.current)return;
+    const opt={
+      margin:[10,10,10,10],
+      filename:`Verkaeuffer-Report-${data?.objekt?.objektnummer||"Objekt"}-${data?.monatLabel?.replace(/\s/g,"-")}.pdf`,
+      image:{type:"jpeg",quality:0.98},
+      html2canvas:{scale:2,useCORS:true},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+    };
+    window.html2pdf().set(opt).from(reportRef.current).save();
+  };
+
+  const sendEmail=async()=>{
+    if(!emailTo||!data||!reportRef)return;
+    setSending(true);
+    try{
+      const htmlContent=reportRef.current.innerHTML;
+      const r=await fetch("/api/verkauf-report/send",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({to:emailTo,html:buildEmailWrapper(htmlContent),objekt:data.objekt.titel,monat:data.monatLabel}),
+      });
+      const d=await r.json();
+      if(!d.success)throw new Error(d.error);
+      setEmailSent(true);
+    }catch(e){alert("Fehler: "+e.message);}
+    setSending(false);
+  };
+
+  const buildEmailWrapper=(inner)=>`
+    <!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <style>body{font-family:Arial,sans-serif;max-width:700px;margin:0 auto;background:#fff;}</style>
+    </head><body>${inner}<p style="margin-top:32px;font-size:12px;color:#8a95a8;border-top:1px solid #eee;padding-top:12px;">
+    Zoeger Immobilien · Hamm (NRW) · Automatisch generiert</p></body></html>`;
+
+  const monatLabel=data?.monatLabel||new Date().toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+
+  return(
+    <div>
+      <SH title="Verkäufer-Report" sub="Monatlicher Statusbericht für Ihre Eigentümer – professionell, datenbasiert, PDF-ready"/>
+
+      {/* Setup Card */}
+      <Card s={{marginBottom:20}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+          <div>
+            <Lbl t="OBJEKT WÄHLEN"/>
+            <select className="sel" value={selected} onChange={e=>setSelected(e.target.value)}>
+              <option value="">– Objekt auswählen –</option>
+              {objekte.map(o=>(
+                <option key={o.id} value={o.id}>
+                  {o.objektnummer} · {o.titel} ({o.status})
+                </option>
+              ))}
+            </select>
+            {objekte.length===0&&<div style={{fontSize:11,color:"#b0b8c8",marginTop:4}}>Lade Objekte…</div>}
+          </div>
+          <div>
+            <Lbl t="INTERNE NOTIZEN (OPTIONAL)"/>
+            <input className="inp" value={notizen} onChange={e=>setNotizen(e.target.value)} placeholder="z.B. Besichtigung war positiv, Preis wird diskutiert"/>
+          </div>
+        </div>
+        <button className="btn-primary" onClick={generate} disabled={!selected||state==="loading"} style={{padding:"11px 28px"}}>
+          {state==="loading"?<><Spin s={13}/>Generiere Report…</>:"📋 Report generieren"}
+        </button>
+      </Card>
+
+      {state==="loading"&&(
+        <Card s={{textAlign:"center",padding:"48px"}}>
+          <Spin s={28}/>
+          <div style={{color:"#8a95a8",marginTop:16,fontSize:14}}>Lade Objektdaten und formuliere Report…</div>
+          <div style={{color:"#b0b8c8",marginTop:6,fontSize:12}}>Claude analysiert Anfragen, Markt und formuliert professionell</div>
+        </Card>
+      )}
+
+      {state.startsWith("error:")&&(
+        <Card s={{textAlign:"center",padding:"40px"}}>
+          <div style={{fontSize:32,marginBottom:12}}>⚠️</div>
+          <div style={{fontSize:14,color:"#dc2626"}}>{state.replace("error:","")}</div>
+        </Card>
+      )}
+
+      {state==="done"&&data&&(
+        <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+          {/* Aktions-Bar */}
+          <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+            <button className="btn-primary" onClick={exportPDF} style={{gap:8}}>
+              📄 Als PDF exportieren
+            </button>
+            <div style={{display:"flex",gap:8,flex:1,maxWidth:400}}>
+              <input className="inp" value={emailTo} onChange={e=>setEmailTo(e.target.value)}
+                placeholder="E-Mail des Verkäufers" type="email"/>
+              <button className="btn-sec" onClick={sendEmail} disabled={!emailTo||sending} style={{flexShrink:0}}>
+                {sending?<Spin s={13}/>:emailSent?"✅ Gesendet":"✉️ Senden"}
+              </button>
+            </div>
+          </div>
+
+          {/* REPORT PREVIEW – wird auch für PDF/Email verwendet */}
+          <div ref={reportRef}>
+            {/* Report Header */}
+            <div style={{background:"linear-gradient(135deg,#b8943a,#8a6820)",borderRadius:"12px 12px 0 0",padding:"32px 36px",color:"#fff"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:24,fontWeight:700,marginBottom:4}}>Zoeger Immobilien</div>
+                  <div style={{fontSize:14,opacity:.85}}>Verkäufer-Report · {data.monatLabel}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:11,opacity:.7,marginBottom:2}}>Objektnummer</div>
+                  <div style={{fontSize:16,fontWeight:700}}>{data.objekt.objektnummer}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Objekt-Info Banner */}
+            <div style={{background:"#1a1d2e",padding:"18px 36px",display:"flex",gap:32,flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,.5)",textTransform:"uppercase",letterSpacing:.5,marginBottom:2}}>Objekt</div>
+                <div style={{fontSize:14,fontWeight:600,color:"#fff"}}>{data.objekt.titel}</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:2}}>📍 {data.objekt.adresse}</div>
+              </div>
+              {[
+                {l:"Kaufpreis",v:data.objekt.preis?data.objekt.preis.toLocaleString("de-DE")+" €":"k.A."},
+                {l:"Typ",v:(data.objekt.typ||"")+" · "+(data.objekt.zimmer||"–")+" Zi. · "+(data.objekt.flaeche||"–")+"m²"},
+                {l:"Am Markt",v:data.objekt.daysOnMarket!==null?data.objekt.daysOnMarket+" Tage":"k.A."},
+                {l:"Status",v:data.objekt.status},
+              ].map(f=>(
+                <div key={f.l}>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,.5)",textTransform:"uppercase",letterSpacing:.5,marginBottom:2}}>{f.l}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#fff"}}>{f.v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Anfragen-Stats */}
+            <div style={{background:"#fdf8ef",padding:"20px 36px",borderBottom:"1px solid #e8edf3",display:"flex",gap:24,flexWrap:"wrap"}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#8a6820",marginRight:8,alignSelf:"center"}}>ANFRAGEN ÜBERSICHT:</div>
+              {[
+                {l:"Gesamt",v:data.anfragen.gesamt,c:"#1a1d2e"},
+                ...(Object.entries(data.anfragen.statusCount||{}).map(([s,n])=>({l:s.charAt(0).toUpperCase()+s.slice(1),v:n,c:s==="offen"?"#003da5":s==="besichtigung"?"#b8943a":s==="gekauft"?"#16a34a":"#64748b"})))
+              ].map(s=>(
+                <div key={s.l} style={{textAlign:"center"}}>
+                  <div style={{fontSize:22,fontWeight:700,color:s.c}}>{s.v}</div>
+                  <div style={{fontSize:10,color:"#8a95a8",textTransform:"uppercase",letterSpacing:.4}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Report Sektionen */}
+            <div style={{background:"#fff",border:"1px solid #e8edf3",borderTop:"none",borderRadius:"0 0 12px 12px",padding:"0 0 8px"}}>
+              {[
+                {icon:"💼",title:"Zusammenfassung",key:"zusammenfassung",color:"#b8943a"},
+                {icon:"📋",title:"Aktivitäten diesen Monat",key:"aktivitaet",color:"#003da5"},
+                {icon:"📊",title:"Markteinschätzung",key:"markt",color:"#64748b"},
+                {icon:"💶",title:"Preisstrategie",key:"preisstrategie",color:"#16a34a"},
+                {icon:"🎯",title:"Ausblick & nächste Schritte",key:"ausblick",color:"#dc2626"},
+              ].map((s,i)=>(
+                <div key={s.key} style={{padding:"20px 36px",borderBottom:"1px solid #f0f2f5"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:s.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>{s.icon}</div>
+                    <span style={{fontSize:13,fontWeight:700,color:s.color,textTransform:"uppercase",letterSpacing:.5}}>{s.title}</span>
+                  </div>
+                  <div style={{fontSize:14,color:"#1a1d2e",lineHeight:1.8,paddingLeft:42}}>
+                    {data.report[s.key]}
+                  </div>
+                </div>
+              ))}
+
+              {/* Empfehlungen */}
+              {data.report.empfehlungen?.length>0&&(
+                <div style={{padding:"20px 36px",borderBottom:"1px solid #f0f2f5"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:"#b8943a15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>✅</div>
+                    <span style={{fontSize:13,fontWeight:700,color:"#b8943a",textTransform:"uppercase",letterSpacing:.5}}>Unsere Empfehlungen</span>
+                  </div>
+                  <div style={{paddingLeft:42,display:"flex",flexDirection:"column",gap:8}}>
+                    {data.report.empfehlungen.map((e,i)=>(
+                      <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <div style={{width:22,height:22,borderRadius:"50%",background:"#b8943a",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
+                        <div style={{fontSize:14,color:"#1a1d2e",lineHeight:1.6}}>{e}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer im Report */}
+              <div style={{padding:"16px 36px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:11,color:"#b0b8c8"}}>Zoeger Immobilien · Hamm (NRW) · {data.monatLabel}</div>
+                <div style={{fontSize:11,color:"#b0b8c8"}}>Für Fragen: p.telsemeyer@zoeger.de</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ANALYSEN VIEW
 function AnalysenView(){
@@ -1153,7 +1389,7 @@ function InserateView(){
 }
 
 // APP
-const NAV=[{id:"bestand",icon:"🏢",label:"Mein Bestand"},{id:"analysen",icon:"📊",label:"Analysen"},{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
+const NAV=[{id:"bestand",icon:"🏢",label:"Mein Bestand"},{id:"analysen",icon:"📊",label:"Analysen"},{id:"report",icon:"📋",label:"Verkäufer-Report"},{id:"inserate",icon:"🏘️",label:"Inserate Hamm"},{id:"objekte",icon:"🏠",label:"Objekte"},{id:"anfragen",icon:"📩",label:"Anfragen"},{id:"markt",icon:"📊",label:"Markt"},{id:"kommunikation",icon:"✉️",label:"Kommunikation"},{id:"buero",icon:"📅",label:"Büro"},{id:"recht",icon:"⚖️",label:"Recht & Beratung"},{id:"sparring",icon:"⚔️",label:"Sparring"}];
 
 function App(){
   const [page,setPage]=useState("objekte");
@@ -1190,6 +1426,7 @@ function App(){
         {page==="inserate"&&<InserateView/>}
         {page==="bestand"&&<MeinBestandView/>}
         {page==="analysen"&&<AnalysenView/>}
+        {page==="report"&&<VerkaufReportView/>}
       </div>
     </div>
   </div>;
